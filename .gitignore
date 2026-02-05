@@ -1,1 +1,3 @@
 .direnv/
+result
+ssh-key.pub
