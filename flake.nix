@@ -29,13 +29,16 @@
       ];
 
       # -- POC-only: per-developer SSH key -----------------------------------
-      # Each developer creates a local (gitignored) file with their
+      # Each developer creates ~/.config/stereos/ssh-key.pub with their
       # public key.  The build fails with a clear message if missing.
-      sshKeyFile = ./ssh-key.pub;
+      #
+      # Setup: mkdir -p ~/.config/stereos && cp ~/.ssh/id_ed25519.pub ~/.config/stereos/ssh-key.pub
+      #
+      sshKeyPath = builtins.getEnv "HOME" + "/.config/stereos/ssh-key.pub";
       sshKey = let
-        raw = builtins.readFile sshKeyFile;
+        raw = builtins.readFile sshKeyPath;
       in
-        nixpkgs.lib.strings.trimEnd raw;
+        nixpkgs.lib.removeSuffix "\n" raw;
 
       mkMixtape = { name, features, system ? "aarch64-linux" }:
         nixpkgs.lib.nixosSystem {
