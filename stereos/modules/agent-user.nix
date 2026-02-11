@@ -3,11 +3,15 @@
 # Creates the admin and agent users with appropriate user level isolation.
 # The agent user can run programs from /nix/store (e.g., opencode, git)
 # but CANNOT invoke nix, nixos-rebuild, nix-env, or any nix tooling.
+#
+# Filesystem layout:
+#   /workspace  — agent's working directory (owned by agent, writable)
+#   /tmp, /run  — tmpfs (ephemeral, never persisted to disk)
 
 { config, lib, pkgs, ... }:
 
 let
-  # ── Curated set of binaries the agent can access ──────────────────
+  # -- Curated set of binaries the agent can access -------------------------
   # This is the ONLY thing on the agent's PATH.
   # Add packages here as needed — but never add nix tools.
   agentPackages = with pkgs; [
@@ -76,13 +80,18 @@ let
     unset NIX_PATH NIX_REMOTE NIX_CONF_DIR NIX_USER_CONF_FILES
     unset NIX_PROFILES NIX_STORE
 
+    # Default working directory to /workspace
+    if [ -d /workspace ]; then
+      cd /workspace
+    fi
+
     # Exec into a clean bash session
     exec ${pkgs.bash}/bin/bash --login "$@"
   '';
 
 in
 {
-  # ── Options ───────────────────────────────────────────────────────
+  # -- Options ---------------------------------------------------------------
   options.stereos = {
     ssh.authorizedKeys = lib.mkOption {
       type = lib.types.listOf lib.types.str;
@@ -104,22 +113,35 @@ in
     # Register the custom shell so NixOS accepts it as a valid login shell
     environment.shells = [ "${agentShell}/bin/stereos-agent-shell" ];
 
-    # ── Admin user (full access) ──────────────────────────────────
+    # -- Admin user (full access) --------------------------------------------
     users.users.admin = {
       isNormalUser = true;
       extraGroups = [ "wheel" ];  # Grants sudo + nix daemon access
       openssh.authorizedKeys.keys = config.stereos.ssh.authorizedKeys;
     };
 
-    # ── Agent user (restricted) ───────────────────────────────────
+    # -- Agent user (restricted) ---------------------------------------------
     users.users.agent = {
       isNormalUser = true;
+      home = "/workspace";
+      createHome = false;  # We create /workspace via systemd-tmpfiles
       shell = "${agentShell}/bin/stereos-agent-shell";
       extraGroups = [];  # No wheel, no special groups
       openssh.authorizedKeys.keys = config.stereos.ssh.authorizedKeys;
     };
 
-    # ── Layer 3: Explicit sudo denial ─────────────────────────────
+    # -- /workspace: the agent's writable working directory ------------------
+    # Created at boot, owned by the agent user.  In production, this may
+    # be a mount point for a virtio-fs or 9p shared directory from the
+    # host (configured via jcard.toml [[shared]] entries).
+    systemd.tmpfiles.rules = [
+      "d /workspace 0755 agent agent -"
+    ];
+
+    # -- Ensure /tmp is tmpfs (ephemeral, never written to disk) -------------
+    boot.tmp.useTmpfs = true;
+
+    # -- Layer 3: Explicit sudo denial ---------------------------------------
     security.sudo = {
       enable = true;
       wheelNeedsPassword = false;  # Admin gets passwordless sudo
