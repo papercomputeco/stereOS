@@ -1,59 +1,52 @@
-# stereos/modules/mbd.nix
+# stereos/modules/stereosd.nix
 #
-# Systemd unit for mbd (masterblaster daemon) — the control plane bridge
-# between the host system and StereOS.
+# StereOS-specific overrides for the stereosd service.
 #
-# mbd is started early in the boot process and provides:
+# The base service definition and `services.stereosd.*` options come from
+# the external stereosd flake (stereosd.nixosModules.default).  This
+# module enables the service and layers on StereOS-specific configuration:
+#
+#   - tmpfiles rules for /run/stereos (unix socket + secrets)
+#   - PATH additions (util-linux for mount/umount, coreutils)
+#   - Security hardening appropriate for a VM control-plane daemon
+#
+# stereosd provides:
 #   - Lifecycle signaling over virtio-vsock (CID:3, port 1024)
 #   - Shared directory mounting (virtio-fs / 9p)
 #   - Secret injection to tmpfs-backed paths
 #   - Graceful shutdown coordination
-#   - Unix socket for agentd communication
+#   - Unix socket for agentd communication (/run/stereos/stereosd.sock)
 #
-# agentd depends on mbd (After=mbd.service).
+# agentd depends on stereosd (After=stereosd.service).
 
 { config, lib, pkgs, ... }:
 
-let
-  # Build the mbd binary from the Go source in this repo.
-  # In the future this may come from a separate Nix derivation or
-  # be pinned to a release artifact.
-  mbdBin = pkgs.buildGoModule {
-    pname = "mbd";
-    version = "0.1.0";
-    src = lib.cleanSource ../../.;
-    subPackages = [ "cmd/mbd" ];
-    vendorHash = null;
-  };
-in
 {
   config = {
+    # Enable the stereosd service from the external flake module.
+    services.stereosd.enable = true;
+
     # -- Runtime directories (tmpfs-backed) ----------------------------------
     systemd.tmpfiles.rules = [
       "d /run/stereos 0755 root root -"
       "d /run/stereos/secrets 0700 root root -"
     ];
 
-    # -- mbd systemd service -------------------------------------------------
-    systemd.services.mbd = {
-      description = "StereOS Masterblaster Daemon";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
-
+    # -- StereOS-specific service overrides ----------------------------------
+    systemd.services.stereosd = {
       # mount and umount are needed for shared directory mounting
       path = [ pkgs.util-linux pkgs.coreutils ];
 
       serviceConfig = {
-        Type = "simple";
-        ExecStart = "${mbdBin}/bin/mbd";
-        Restart = "on-failure";
-        RestartSec = 5;
-
-        # mbd runs as root because it needs to:
+        # Override: stereosd needs to run as root in StereOS because it must:
         #   - Bind to AF_VSOCK sockets
         #   - Mount/unmount shared filesystems (CAP_SYS_ADMIN)
         #   - Write secrets to /run/stereos/secrets (root-owned)
         #   - Initiate system poweroff during shutdown
+        DynamicUser = lib.mkForce false;
+
+        Restart = lib.mkForce "on-failure";
+        RestartSec = 5;
 
         # Security hardening (what we *can* lock down while still
         # allowing mount operations and vsock)
@@ -61,7 +54,7 @@ in
         PrivateTmp = true;
         NoNewPrivileges = true;
 
-        # mbd needs write access to /run/stereos for the unix socket
+        # stereosd needs write access to /run/stereos for the unix socket
         # and secrets, plus mount points under /workspace and similar
         ReadWritePaths = [ "/run/stereos" "/workspace" ];
       };

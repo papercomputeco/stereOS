@@ -1,43 +1,40 @@
 # stereos/modules/agentd.nix
 #
-# Systemd unit for agentd (agent daemon) — starts, supervises, and stops
-# configured agent harnesses (Claude Code, OpenCode, etc.).
+# StereOS-specific overrides for the agentd service.
+#
+# The base service definition and `services.agentd.*` options come from
+# the external agentd flake (agentd.nixosModules.default).  This module
+# enables the service and layers on StereOS-specific configuration:
+#
+#   - Service ordering: agentd starts AFTER and REQUIRES stereosd
+#   - Security hardening for the StereOS VM environment
 #
 # agentd manages tmux sessions for the agent user, allowing admin to
 # "tmux attach [session]" to introspect running agents.
 #
-# Depends on mbd for:
-#   - Unix socket communication (/run/stereos/mbd.sock)
+# Depends on stereosd for:
+#   - Unix socket communication (/run/stereos/stereosd.sock)
 #   - Secret injection (/run/stereos/secrets/)
 
 { config, lib, pkgs, ... }:
 
-let
-  # Build the agentd binary from the Go source in this repo.
-  agentdBin = pkgs.buildGoModule {
-    pname = "agentd";
-    version = "0.1.0";
-    src = ../../.;
-    subPackages = [ "cmd/agentd" ];
-    vendorHash = null;
-  };
-in
 {
   config = {
-    # -- agentd systemd service ----------------------------------------------
-    systemd.services.agentd = {
-      description = "StereOS Agent Daemon";
-      wantedBy = [ "multi-user.target" ];
+    # Enable the agentd service from the external flake module.
+    services.agentd.enable = true;
 
-      # agentd starts AFTER mbd — it depends on mbd for secrets and
-      # the control plane unix socket.
-      after = [ "mbd.service" ];
-      requires = [ "mbd.service" ];
+    # -- StereOS-specific service overrides ----------------------------------
+    systemd.services.agentd = {
+      # agentd starts AFTER stereosd — it depends on stereosd for secrets
+      # and the control plane unix socket.
+      after = [ "stereosd.service" ];
+      requires = [ "stereosd.service" ];
 
       serviceConfig = {
-        Type = "simple";
-        ExecStart = "${agentdBin}/bin/agentd";
-        Restart = "on-failure";
+        # Override: disable DynamicUser in favour of StereOS's own user model
+        DynamicUser = lib.mkForce false;
+
+        Restart = lib.mkForce "on-failure";
         RestartSec = 5;
 
         # Security hardening
