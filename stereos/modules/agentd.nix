@@ -23,6 +23,13 @@
     # Enable the agentd service from the external flake module.
     services.agentd.enable = true;
 
+    # -- Runtime directory for agentd tmux socket ----------------------------
+    # Separate from /run/stereos/ (root:admin) so the agent user can create
+    # and own the tmux socket. admin group can traverse to attach sessions.
+    systemd.tmpfiles.rules = [
+      "d /run/agentd 0750 agent admin -"
+    ];
+
     # -- StereOS-specific service overrides ----------------------------------
     systemd.services.agentd = {
       # agentd starts AFTER stereosd — it depends on stereosd for secrets
@@ -31,21 +38,12 @@
       requires = [ "stereosd.service" ];
 
       serviceConfig = {
-        # Override: disable DynamicUser in favour of StereOS's own user model
+        # Override: disable DynamicUser in favour of StereOS's own user model.
+        # agentd runs as root so it can manage tmux sessions for the agent user.
         DynamicUser = lib.mkForce false;
 
         Restart = lib.mkForce "on-failure";
         RestartSec = 5;
-
-        # Security hardening
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        PrivateTmp = true;
-        NoNewPrivileges = true;
-
-        # agentd needs read access to secrets and write access to /workspace
-        # for agent session management
-        ReadWritePaths = [ "/run/stereos" "/workspace" ];
       };
     };
   };
