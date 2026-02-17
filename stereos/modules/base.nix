@@ -96,6 +96,7 @@
     tree
     file
     unzip
+    ghostty.terminfo  # xterm-ghostty terminfo entry
   ];
 
   # -- Locale and timezone ---------------------------------------------------

@@ -8,7 +8,7 @@
 #
 #   - tmpfiles rules for /run/stereos (unix socket + secrets)
 #   - PATH additions (util-linux for mount/umount, coreutils)
-#   - Security hardening appropriate for a VM control-plane daemon
+#   - Firewall opening for TCP control plane fallback
 #
 # stereosd provides:
 #   - Lifecycle signaling over virtio-vsock (CID:3, port 1024)
@@ -27,10 +27,19 @@
     services.stereosd.enable = true;
 
     # -- Runtime directories (tmpfs-backed) ----------------------------------
+    # /run/stereos is group-owned by admin so the admin user can access
+    # daemon sockets (stereosd.sock, agentd.sock, agentd-tmux.sock).
+    # Secrets stay root-only — admin cannot read injected secrets.
     systemd.tmpfiles.rules = [
-      "d /run/stereos 0755 root root -"
+      "d /run/stereos 0750 root admin -"
       "d /run/stereos/secrets 0700 root root -"
     ];
+
+    # -- Firewall: allow TCP 1024 for the control plane TCP fallback ---------
+    # When AF_VSOCK is unavailable (macOS/HVF + QEMU user-mode networking),
+    # stereosd listens on TCP port 1024 and the host reaches it via SLIRP
+    # port forwarding.
+    networking.firewall.allowedTCPPorts = [ 1024 ];
 
     # -- StereOS-specific service overrides ----------------------------------
     systemd.services.stereosd = {
@@ -47,16 +56,6 @@
 
         Restart = lib.mkForce "on-failure";
         RestartSec = 5;
-
-        # Security hardening (what we *can* lock down while still
-        # allowing mount operations and vsock)
-        ProtectHome = true;
-        PrivateTmp = true;
-        NoNewPrivileges = true;
-
-        # stereosd needs write access to /run/stereos for the unix socket
-        # and secrets, plus mount points under /workspace and similar
-        ReadWritePaths = [ "/run/stereos" "/workspace" ];
       };
     };
   };

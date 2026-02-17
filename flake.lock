@@ -8,11 +8,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1770996920,
-        "narHash": "sha256-qH3o5teP6gtp7GWqdRicvm6hVrqCxPHvB7HWM6t+VUo=",
+        "lastModified": 1771336930,
+        "narHash": "sha256-2/FkSmAKpygbF2EfVUDR5ZvcD/9edesKPKO8BWpD00o=",
         "owner": "papercomputeco",
         "repo": "agentd",
-        "rev": "320d148c1b0e348c933611eadfd99dcfd4546748",
+        "rev": "d70ccb01865c69fc70aa29381eba23a74f683a0f",
         "type": "github"
       },
       "original": {
@@ -128,11 +128,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1771100351,
-        "narHash": "sha256-KyfYlOnU1luctOiUl5DmekKXZQYpVfHzGYBGsSREHMo=",
+        "lastModified": 1771286433,
+        "narHash": "sha256-i8nJvSFqeAtHeafTuQLgejy2BxBWcSZlqNlF2Zz+jhA=",
         "owner": "papercomputeco",
         "repo": "stereosd",
-        "rev": "ec83bd91d211d65affa4ee0c64e8025ba674d1d1",
+        "rev": "72c68a9718d3dc087b848ed384da90e00c0f701c",
         "type": "github"
       },
       "original": {

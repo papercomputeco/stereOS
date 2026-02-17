@@ -113,10 +113,15 @@ in
     # Register the custom shell so NixOS accepts it as a valid login shell
     environment.shells = [ "${agentShell}/bin/stereos-agent-shell" ];
 
+    # -- Admin group ---------------------------------------------------------
+    # The admin group controls access to stereosd/agentd sockets and tmux
+    # sessions.  Privilege hierarchy: root > admin > agent.
+    users.groups.admin = {};
+
     # -- Admin user (full access) --------------------------------------------
     users.users.admin = {
       isNormalUser = true;
-      extraGroups = [ "wheel" ];  # Grants sudo + nix daemon access
+      extraGroups = [ "wheel" "admin" ];  # wheel = sudo, admin = socket access
       openssh.authorizedKeys.keys = config.stereos.ssh.authorizedKeys;
     };
 
