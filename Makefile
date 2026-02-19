@@ -67,6 +67,12 @@ ssh-admin: ## SSH into the running VM as admin
 ssh-agent: ## SSH into the running VM as agent
 	ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $(SSH_PORT) agent@localhost
 
+# -- Dagger -------------------------------------------------------------------
+
+.PHONY: dagger-check
+dagger-check: ## Run Dagger CI checks
+	dagger check
+
 # -- Utilities ----------------------------------------------------------------
 
 .PHONY: help
