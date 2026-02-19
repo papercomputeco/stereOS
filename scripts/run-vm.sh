@@ -2,6 +2,11 @@
 #
 # Launch a StereOS image in QEMU on Apple Silicon.
 #
+# Supports two boot modes (auto-detected):
+#   1. Direct kernel boot — uses kernel artifacts (bzImage, initrd, cmdline)
+#      to bypass UEFI/GRUB entirely. ~2-4s faster boot.
+#   2. EFI boot (fallback) — uses OVMF firmware and GRUB from the disk image.
+#
 # Supports both raw and qcow2 images (auto-detected by extension).
 # Raw images are converted to qcow2 on the fly since QEMU prefers
 # writable qcow2 for runtime mutations.
@@ -35,17 +40,37 @@ fi
 
 SSH_PORT="${2:-2222}"
 
-# -- Locate UEFI firmware ----------------------------------------------------
-if [ -z "${STEREOS_EFI_CODE:-}" ]; then
-  echo "ERROR: STEREOS_EFI_CODE is not set."
-  echo "Run this script from inside the nix devShell: nix develop"
-  exit 1
+# -- Detect kernel artifacts for direct boot ---------------------------------
+# If kernel artifacts are available (from `nix build .#<mixtape>-kernel-artifacts`),
+# use direct kernel boot to skip UEFI/GRUB entirely.
+KERNEL_ARTIFACTS_DIR=""
+BOOT_MODE="efi"
+
+# Check common locations for kernel artifacts
+for dir in "./result-kernel" "./result-kernel-artifacts"; do
+  if [ -f "$dir/bzImage" ] && [ -f "$dir/initrd" ] && [ -f "$dir/cmdline" ]; then
+    KERNEL_ARTIFACTS_DIR="$dir"
+    BOOT_MODE="direct-kernel"
+    break
+  fi
+done
+
+# -- Locate UEFI firmware (only needed for EFI boot) -------------------------
+if [ "$BOOT_MODE" = "efi" ]; then
+  if [ -z "${STEREOS_EFI_CODE:-}" ]; then
+    echo "ERROR: STEREOS_EFI_CODE is not set."
+    echo "Run this script from inside the nix devShell: nix develop"
+    echo ""
+    echo "Alternatively, build kernel artifacts for direct boot (no EFI needed):"
+    echo "  nix build .#packages.aarch64-linux.<mixtape>-kernel-artifacts --impure -o result-kernel"
+    exit 1
+  fi
+  if [ ! -f "$STEREOS_EFI_CODE" ]; then
+    echo "ERROR: EFI firmware not found at: $STEREOS_EFI_CODE"
+    exit 1
+  fi
+  EFI_CODE="$STEREOS_EFI_CODE"
 fi
-if [ ! -f "$STEREOS_EFI_CODE" ]; then
-  echo "ERROR: EFI firmware not found at: $STEREOS_EFI_CODE"
-  exit 1
-fi
-EFI_CODE="$STEREOS_EFI_CODE"
 
 # -- Verify the image exists -------------------------------------------------
 if [ ! -f "$IMAGE" ]; then
@@ -75,9 +100,23 @@ case "$IMAGE" in
 esac
 chmod u+w "$WORK_IMAGE"
 
-# Create writable EFI variable store
-EFI_VARS="$WORK_DIR/efi-vars.fd"
-dd if=/dev/zero of="$EFI_VARS" bs=1M count=64 2>/dev/null
+# -- Build boot method args --------------------------------------------------
+BOOT_ARGS=()
+if [ "$BOOT_MODE" = "direct-kernel" ]; then
+  BOOT_ARGS=(
+    -kernel "$KERNEL_ARTIFACTS_DIR/bzImage"
+    -initrd "$KERNEL_ARTIFACTS_DIR/initrd"
+    -append "$(cat "$KERNEL_ARTIFACTS_DIR/cmdline")"
+  )
+else
+  # Create writable EFI variable store
+  EFI_VARS="$WORK_DIR/efi-vars.fd"
+  dd if=/dev/zero of="$EFI_VARS" bs=1M count=64 2>/dev/null
+  BOOT_ARGS=(
+    -drive "if=pflash,format=raw,readonly=on,file=$EFI_CODE"
+    -drive "if=pflash,format=raw,file=$EFI_VARS"
+  )
+fi
 
 # -- Vsock support (Linux only) -----------------------------------------------
 # vhost-vsock-pci requires the Linux vhost-vsock kernel module (/dev/vhost-vsock)
@@ -94,7 +133,11 @@ fi
 
 echo "══════════════════════════════════════════════════════════"
 echo "  StereOS VM starting"
+echo "  Boot:   $BOOT_MODE"
 echo "  Image:  $IMAGE"
+if [ "$BOOT_MODE" = "direct-kernel" ]; then
+echo "  Kernel: $KERNEL_ARTIFACTS_DIR/bzImage"
+fi
 echo "  SSH:    ssh -p $SSH_PORT admin@localhost"
 echo "          ssh -p $SSH_PORT agent@localhost"
 echo "  Vsock:  $VSOCK_MSG"
@@ -107,10 +150,11 @@ qemu-system-aarch64 \
   -cpu host \
   -m 4G \
   -smp 4 \
-  -drive if=pflash,format=raw,readonly=on,file="$EFI_CODE" \
-  -drive if=pflash,format=raw,file="$EFI_VARS" \
-  -drive if=virtio,format=qcow2,file="$WORK_IMAGE" \
+  "${BOOT_ARGS[@]}" \
+  -drive if=virtio,format=qcow2,file="$WORK_IMAGE",discard=unmap \
   -device virtio-net-pci,netdev=net0 \
   -netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \
   "${VSOCK_ARGS[@]}" \
+  -nodefaults \
+  -no-user-config \
   -nographic
