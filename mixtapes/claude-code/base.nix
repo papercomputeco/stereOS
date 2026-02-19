@@ -1,13 +1,13 @@
-# stereos/modules/features/claude-code.nix
+# mixtapes/claude-code/base.nix
 #
-# Adds Claude Code (Anthropic's CLI coding agent) to the stereOS image.
+# Claude Code mixtape — includes Anthropic's CLI coding agent.
 #
 # Package: pkgs.claude-code (nixpkgs-unstable)
 # Binary: claude
 #
 # Required environment variable at runtime:
 #   ANTHROPIC_API_KEY
-#
+
 { config, lib, pkgs, ... }:
 
 {

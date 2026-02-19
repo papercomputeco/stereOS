@@ -1,0 +1,15 @@
+# modules/default.nix
+#
+# Aggregator — imports all StereOS NixOS sub-modules.
+# Consumers (mixtapes, profiles) import this single path to get everything.
+
+{
+  imports = [
+    ./base.nix
+    ./boot.nix
+    ./services/stereosd.nix
+    ./services/agentd.nix
+    ./users/agent.nix
+    ./users/admin.nix
+  ];
+}

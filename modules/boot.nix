@@ -1,7 +1,11 @@
-# stereos/modules/boot-optimization.nix
+# modules/boot.nix
 #
-# Boot time optimizations targeting sub-3-second boot for the stereOS
-# agent sandbox image when launched via QEMU (-M microvm) or Apple
+# Boot configuration and boot-time optimizations for stereOS.
+#
+# aarch64 requires UEFI boot — there is no BIOS on ARM.
+#
+# Boot optimizations target sub-3-second boot for the stereOS agent
+# sandbox image when launched via QEMU (-M microvm) or Apple
 # Virtualization.framework.
 #
 # This module is split into two phases matching the SPEC:
@@ -15,6 +19,24 @@
 { config, lib, pkgs, ... }:
 
 {
+  # -- Boot ------------------------------------------------------------------
+  # efiInstallAsRemovable puts GRUB at /EFI/BOOT/BOOTAA64.EFI,
+  # which is the fallback path QEMU's UEFI firmware searches.
+  boot.loader.grub = {
+    enable = true;
+    efiSupport = true;
+    efiInstallAsRemovable = true;
+    device = "nodev";  # No MBR install — EFI only
+  };
+
+  # Serial console for -nographic QEMU operation.
+  # ttyAMA0 is the PL011 UART on QEMU's virt machine (aarch64).
+  boot.kernelParams = lib.mkMerge [
+    (lib.mkBefore [ "quiet" "loglevel=0" ])
+    [ "console=ttyAMA0,115200" "console=tty0" ]
+  ];
+  boot.growPartition = true;
+
   # ============================================================
   # Phase 1: High-Impact, Low-Effort
   # ============================================================
@@ -26,9 +48,6 @@
   boot.initrd.systemd.enable = true;
 
   # Silence kernel output — no printk spam on the serial console during boot.
-  boot.kernelParams = lib.mkMerge [
-    (lib.mkBefore [ "quiet" "loglevel=0" ])
-  ];
   boot.consoleLogLevel = 0;
 
   # Restrict initrd to only the kernel modules needed for virtio-backed VMs.

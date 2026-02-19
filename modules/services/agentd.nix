@@ -1,4 +1,4 @@
-# stereos/modules/agentd.nix
+# modules/services/agentd.nix
 #
 # StereOS-specific overrides for the agentd service.
 #

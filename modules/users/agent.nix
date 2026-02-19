@@ -1,12 +1,15 @@
-# stereos/modules/agent-user.nix
+# modules/users/agent.nix
 #
-# Creates the admin and agent users with appropriate user level isolation.
+# Creates the agent user with appropriate user level isolation.
 # The agent user can run programs from /nix/store (e.g., opencode, git)
 # but CANNOT invoke nix, nixos-rebuild, nix-env, or any nix tooling.
 #
 # Filesystem layout:
 #   /workspace  — agent's working directory (owned by agent, writable)
 #   /tmp, /run  — tmpfs (ephemeral, never persisted to disk)
+#
+# Also declares the shared stereos.ssh and stereos.agent options used
+# by both the agent and admin user modules.
 
 { config, lib, pkgs, ... }:
 
@@ -113,18 +116,6 @@ in
     # Register the custom shell so NixOS accepts it as a valid login shell
     environment.shells = [ "${agentShell}/bin/stereos-agent-shell" ];
 
-    # -- Admin group ---------------------------------------------------------
-    # The admin group controls access to stereosd/agentd sockets and tmux
-    # sessions.  Privilege hierarchy: root > admin > agent.
-    users.groups.admin = {};
-
-    # -- Admin user (full access) --------------------------------------------
-    users.users.admin = {
-      isNormalUser = true;
-      extraGroups = [ "wheel" "admin" ];  # wheel = sudo, admin = socket access
-      openssh.authorizedKeys.keys = config.stereos.ssh.authorizedKeys;
-    };
-
     # -- Agent user (restricted) ---------------------------------------------
     users.users.agent = {
       isNormalUser = true;
@@ -143,13 +134,9 @@ in
       "d /workspace 0755 agent agent -"
     ];
 
-    # -- Ensure /tmp is tmpfs (ephemeral, never written to disk) -------------
-    boot.tmp.useTmpfs = true;
-
     # -- Layer 3: Explicit sudo denial ---------------------------------------
     security.sudo = {
       enable = true;
-      wheelNeedsPassword = false;  # Admin gets passwordless sudo
       extraConfig = ''
         # Explicitly deny ALL sudo access for the agent user.
         # This must come BEFORE any permissive rules.

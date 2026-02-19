@@ -1,4 +1,4 @@
-# stereos/modules/stereosd.nix
+# modules/services/stereosd.nix
 #
 # StereOS-specific overrides for the stereosd service.
 #

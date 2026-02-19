@@ -1,15 +1,15 @@
-# stereos/modules/features/opencode.nix
+# mixtapes/opencode/base.nix
 #
-# Adds OpenCode (https://opencode.ai/) to the stereOS image.
-# OpenCode is a terminal-based AI coding agent.
+# OpenCode mixtape — includes the OpenCode terminal AI coding agent.
 #
+# OpenCode: https://opencode.ai/
 # Package: pkgs.opencode (nixpkgs-unstable)
 # Binary: opencode
 # Config: ~/.config/opencode/config.json
 #
 # Required environment variable at runtime:
 #   ANTHROPIC_API_KEY or OPENAI_API_KEY (depending on provider)
-#
+
 { config, lib, pkgs, ... }:
 
 {
