@@ -1,7 +1,9 @@
-# stereos/modules/base.nix
+# modules/base.nix
 #
 # Core stereOS system configuration.
-# Provides: boot, filesystem, SSH, nix settings, essential packages.
+# Provides: filesystem, SSH, nix settings, essential packages, hardening.
+#
+# Boot configuration lives in boot.nix.
 
 { config, lib, pkgs, modulesPath, ... }:
 
@@ -37,22 +39,6 @@
     Mixtape: ${config.networking.hostName}
 
   '';
-
-  # -- Boot ------------------------------------------------------------------
-  # aarch64 requires UEFI boot — there is no BIOS on ARM.
-  # efiInstallAsRemovable puts GRUB at /EFI/BOOT/BOOTAA64.EFI,
-  # which is the fallback path QEMU's UEFI firmware searches.
-  boot.loader.grub = {
-    enable = true;
-    efiSupport = true;
-    efiInstallAsRemovable = true;
-    device = "nodev";  # No MBR install — EFI only
-  };
-
-  # Serial console for -nographic QEMU operation.
-  # ttyAMA0 is the PL011 UART on QEMU's virt machine (aarch64).
-  boot.kernelParams = [ "console=ttyAMA0,115200" "console=tty0" ];
-  boot.growPartition = true;
 
   # -- Filesystem -------------------------------------------------------------
   fileSystems."/" = {
@@ -129,4 +115,7 @@
     "net.ipv6.conf.all.accept_redirects" = 0;
     "net.ipv4.conf.all.send_redirects" = 0;
   };
+
+  # -- Ensure /tmp is tmpfs (ephemeral, never written to disk) -------------
+  boot.tmp.useTmpfs = true;
 }

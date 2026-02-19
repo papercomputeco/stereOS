@@ -1,13 +1,13 @@
-# stereos/modules/features/gemini-cli.nix
+# mixtapes/gemini-cli/base.nix
 #
-# Adds Gemini CLI (Google's AI coding agent) to the stereOS image.
+# Gemini CLI mixtape — includes Google's AI coding agent.
 #
 # Package: pkgs.gemini-cli (nixpkgs-unstable)
 # Binary: gemini
 #
 # Required environment variable at runtime:
 #   GEMINI_API_KEY or GOOGLE_API_KEY
-#
+
 { config, lib, pkgs, ... }:
 
 {
