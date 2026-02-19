@@ -53,6 +53,7 @@
 
         # StereOS base modules
         ./stereos/modules/base.nix
+        ./stereos/modules/boot-optimization.nix
         ./stereos/modules/agent-user.nix
         ./stereos/modules/image.nix
 
@@ -187,7 +188,18 @@
               value = qcow2Pkgs.${name};
             }) (builtins.attrNames qcow2Pkgs)
           );
+          # Kernel artifacts (bzImage + initrd + cmdline) for direct-kernel boot.
+          # Build with: nix build .#packages.aarch64-linux.<name>-kernel-artifacts
+          kernelArtifactPkgs = builtins.mapAttrs
+            (_name: cfg: cfg.config.system.build.kernelArtifacts)
+            configs;
+          kernelArtifactsNamed = builtins.listToAttrs (
+            builtins.map (name: {
+              name = "${name}-kernel-artifacts";
+              value = kernelArtifactPkgs.${name};
+            }) (builtins.attrNames kernelArtifactPkgs)
+          );
         in
-          rawPkgs // qcow2Named;
+          rawPkgs // qcow2Named // kernelArtifactsNamed;
     };
 }
