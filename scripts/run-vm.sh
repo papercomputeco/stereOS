@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Launch a StereOS image in QEMU on Apple Silicon.
+# Launch a stereOS image in QEMU on Apple Silicon.
 #
 # Supports two boot modes (auto-detected):
 #   1. Direct kernel boot — uses kernel artifacts (bzImage, initrd, cmdline)
@@ -132,7 +132,7 @@ else
 fi
 
 echo "══════════════════════════════════════════════════════════"
-echo "  StereOS VM starting"
+echo "  stereOS VM starting"
 echo "  Boot:   $BOOT_MODE"
 echo "  Image:  $IMAGE"
 if [ "$BOOT_MODE" = "direct-kernel" ]; then

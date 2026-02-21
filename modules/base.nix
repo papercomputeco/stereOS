@@ -19,7 +19,7 @@
   # -- stereOS system identity -----------------------------------------------
   # Override /etc/os-release so tools like hostnamectl show stereOS
   environment.etc."os-release".text = lib.mkForce ''
-    NAME="StereOS"
+    NAME="stereOS"
     ID=stereos
     ID_LIKE=nixos
     VERSION="${config.system.nixos.version}"
@@ -28,7 +28,7 @@
     HOME_URL="https://github.com/paper-compute-co"
   '';
 
-  # "Sub- Zero" ASCII art StereOS logo for ssh splash
+  # "Sub- Zero" ASCII art stereOS logo for ssh splash
   users.motd = ''
   ______   ______  ______   ______   ______   ______   ______
  /\  ___\ /\__  _\/\  ___\ /\  == \ /\  ___\ /\  __ \ /\  ___\

@@ -1,4 +1,4 @@
-// StereOS Dagger CI module
+// stereOS Dagger CI module
 //
 // Provides CI functions for the stereOS flake.
 
@@ -15,7 +15,7 @@ type StereOS struct {
 	Source *dagger.Directory
 }
 
-// New creates a new StereOS module instance.
+// New creates a new stereOS module instance.
 func New(
 	// Directory of the flake's source
 	//

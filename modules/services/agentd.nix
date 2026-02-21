@@ -1,13 +1,13 @@
 # modules/services/agentd.nix
 #
-# StereOS-specific overrides for the agentd service.
+# stereOS-specific overrides for the agentd service.
 #
 # The base service definition and `services.agentd.*` options come from
 # the external agentd flake (agentd.nixosModules.default).  This module
-# enables the service and layers on StereOS-specific configuration:
+# enables the service and layers on stereOS-specific configuration:
 #
 #   - Service ordering: agentd starts AFTER and REQUIRES stereosd
-#   - Security hardening for the StereOS VM environment
+#   - Security hardening for the stereOS VM environment
 #
 # agentd manages tmux sessions for the agent user, allowing admin to
 # "tmux attach [session]" to introspect running agents.
@@ -30,7 +30,7 @@
       "d /run/agentd 0750 agent admin -"
     ];
 
-    # -- StereOS-specific service overrides ----------------------------------
+    # -- stereOS-specific service overrides ----------------------------------
     systemd.services.agentd = {
       # agentd starts AFTER stereosd — it depends on stereosd for secrets
       # and the control plane unix socket.
@@ -38,7 +38,7 @@
       requires = [ "stereosd.service" ];
 
       serviceConfig = {
-        # Override: disable DynamicUser in favour of StereOS's own user model.
+        # Override: disable DynamicUser in favour of stereOS's own user model.
         # agentd runs as root so it can manage tmux sessions for the agent user.
         DynamicUser = lib.mkForce false;
 

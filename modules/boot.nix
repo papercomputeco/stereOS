@@ -204,7 +204,7 @@
   # Compare the value against the kernel boot timestamp in /proc/uptime to
   # measure total time-to-ready.
   systemd.services.stereos-ready = {
-    description = "StereOS boot complete marker";
+    description = "stereOS boot complete marker";
     wantedBy = [ "multi-user.target" ];
     after = [ "stereosd.service" ];
     serviceConfig = {

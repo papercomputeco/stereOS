@@ -1,6 +1,6 @@
 # lib/default.nix
 #
-# Shared Nix helper functions for StereOS.
+# Shared Nix helper functions for stereOS.
 
 { inputs }:
 
@@ -11,7 +11,7 @@ in
   # -- mkMixtape -------------------------------------------------------------
   #
   # Build a complete NixOS system configuration ("mixtape") from:
-  #   - The shared StereOS module tree (modules/)
+  #   - The shared stereOS module tree (modules/)
   #   - A profile (profiles/base.nix, profiles/dev.nix)
   #   - External flake modules (agentd, stereosd) + overlays
   #   - Mixtape-specific feature modules
@@ -63,7 +63,7 @@ in
           ];
         })
 
-        # StereOS module tree (aggregator imports all sub-modules)
+        # stereOS module tree (aggregator imports all sub-modules)
         ../modules
 
         # Shared base profile
