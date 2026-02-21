@@ -1,7 +1,7 @@
 # formats/raw-efi.nix
 #
 # Raw EFI disk image format.
-# Produces system.build.raw — the canonical StereOS image artifact.
+# Produces system.build.raw — the canonical stereOS image artifact.
 #
 # Used by Apple Virtualization.framework and as the base for OCI
 # distribution and QCOW2 conversion.

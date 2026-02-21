@@ -1,7 +1,7 @@
 # Based around the auto-documented Makefile:
 # http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 #
-# StereOS Makefile
+# stereOS Makefile
 # "$ make help" to see available targets
 
 MIXTAPE ?= opencode-mixtape
@@ -78,7 +78,7 @@ dagger-check: ## Run Dagger CI checks
 .PHONY: help
 .DEFAULT_GOAL := help
 help: ## Show this help message
-	@echo "StereOS development targets:"
+	@echo "stereOS development targets:"
 	@echo ""
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2}'

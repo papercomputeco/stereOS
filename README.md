@@ -1,6 +1,6 @@
-# StereOS
+# stereOS
 
-StereOS is a Linux based operating system purpose built for AI agents.
+stereOS is a Linux based operating system purpose built for AI agents.
 
 ---
 

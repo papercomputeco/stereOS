@@ -4,7 +4,7 @@
 # This is the "glue" that every mixtape gets — it's intentionally thin
 # since the real configuration lives in modules/.
 #
-# Currently a pass-through; as StereOS grows, shared profile-level
+# Currently a pass-through; as stereOS grows, shared profile-level
 # configuration (e.g., default locale overrides, common environment
 # variables, etc.) goes here rather than in the module tree.
 

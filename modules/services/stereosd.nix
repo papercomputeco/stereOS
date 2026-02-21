@@ -1,10 +1,10 @@
 # modules/services/stereosd.nix
 #
-# StereOS-specific overrides for the stereosd service.
+# stereOS-specific overrides for the stereosd service.
 #
 # The base service definition and `services.stereosd.*` options come from
 # the external stereosd flake (stereosd.nixosModules.default).  This
-# module enables the service and layers on StereOS-specific configuration:
+# module enables the service and layers on stereOS-specific configuration:
 #
 #   - tmpfiles rules for /run/stereos (unix socket + secrets)
 #   - PATH additions (util-linux for mount/umount, coreutils)
@@ -41,7 +41,7 @@
     # port forwarding.
     networking.firewall.allowedTCPPorts = [ 1024 ];
 
-    # -- StereOS-specific service overrides ----------------------------------
+    # -- stereOS-specific service overrides ----------------------------------
     systemd.services.stereosd = {
       # mount and umount are needed for shared directory mounting
       path = [ pkgs.util-linux pkgs.coreutils ];
@@ -53,7 +53,7 @@
       after = [ "systemd-modules-load.service" ];
 
       serviceConfig = {
-        # Override: stereosd needs to run as root in StereOS because it must:
+        # Override: stereosd needs to run as root in stereOS because it must:
         #   - Bind to AF_VSOCK sockets
         #   - Mount/unmount shared filesystems (CAP_SYS_ADMIN)
         #   - Write secrets to /run/stereos/secrets (root-owned)

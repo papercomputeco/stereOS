@@ -25,7 +25,7 @@
           export NIX_CONFIG="access-tokens = github.com=$(gh auth token)"
         fi
 
-        echo "StereOS dev shell"
+        echo "stereOS dev shell"
         echo "  Go:   $(go version)"
         echo "  QEMU: $(qemu-system-aarch64 --version | head -1)"
         export STEREOS_EFI_CODE="${pkgs.qemu}/share/qemu/edk2-aarch64-code.fd"
