@@ -41,6 +41,27 @@
         "type": "github"
       }
     },
+    "dagger_2": {
+      "inputs": {
+        "nixpkgs": [
+          "stereosd",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1770335455,
+        "narHash": "sha256-3+MXZ2A7WK6H5lfrdIMemYHhrmLNH9NvvJIQWeQk6EQ=",
+        "owner": "dagger",
+        "repo": "nix",
+        "rev": "e236052a8312eee5b8358cbfcd3a57ee6ceb7765",
+        "type": "github"
+      },
+      "original": {
+        "owner": "dagger",
+        "repo": "nix",
+        "type": "github"
+      }
+    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": "nixpkgs-lib"
@@ -137,17 +158,18 @@
     },
     "stereosd": {
       "inputs": {
+        "dagger": "dagger_2",
         "flake-utils": "flake-utils_2",
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1771286433,
-        "narHash": "sha256-i8nJvSFqeAtHeafTuQLgejy2BxBWcSZlqNlF2Zz+jhA=",
+        "lastModified": 1771640744,
+        "narHash": "sha256-WqADmj9/KtLJOdW/RSaHoPky6Cwd+/2MjKbl9wIi4Fk=",
         "owner": "papercomputeco",
         "repo": "stereosd",
-        "rev": "72c68a9718d3dc087b848ed384da90e00c0f701c",
+        "rev": "613df8b8a4f9c6a2858a7fa20653f4add87336c7",
         "type": "github"
       },
       "original": {

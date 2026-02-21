@@ -29,11 +29,20 @@
     device = "nodev";  # No MBR install — EFI only
   };
 
-  # Serial console for -nographic QEMU operation.
-  # ttyAMA0 is the PL011 UART on QEMU's virt machine (aarch64).
+  # Serial console for headless operation.
+  # The kernel accepts multiple console= parameters and writes output to all
+  # of them, but only the *last* one becomes /dev/console (used by init and
+  # systemd for stdin/stdout). We list the primary console last.
+  #
+  #   ttyAMA0  — PL011 UART on QEMU's virt machine (aarch64 -serial)
+  #   hvc0     — virtio console on Apple Virtualization.framework
+  #   tty0     — virtual terminal (active when a display is attached)
+  #
+  # With this ordering, hvc0 is /dev/console. QEMU's -serial still captures
+  # ttyAMA0 output. Apple Virt's VirtioConsoleDevice captures hvc0.
   boot.kernelParams = lib.mkMerge [
     (lib.mkBefore [ "quiet" "loglevel=0" ])
-    [ "console=ttyAMA0,115200" "console=tty0" ]
+    [ "console=tty0" "console=ttyAMA0,115200" "console=hvc0" ]
   ];
   boot.growPartition = true;
 
@@ -58,12 +67,25 @@
     "virtio_net"
     "virtio_console"
     "virtiofs"
+
+    # vsock: host-guest control plane for stereosd.
+    "vsock"
+    "vmw_vsock_virtio_transport"
+    "vmw_vsock_virtio_transport_common"
+
     "ext4"
     "erofs"
     "overlay"
   ];
   # Nothing force-loaded at initrd time — let systemd-udevd handle it.
   boot.initrd.kernelModules = lib.mkForce [];
+
+  # Force-load vsock transport in the real root so it is available before
+  # stereosd starts. udev does not automatically load vsock modules because
+  # the virtio-socket device doesn't trigger a modalias match for the
+  # transport layer. Without this, stereosd's VsockTransportAvailable()
+  # check fails and it falls back to TCP.
+  boot.kernelModules = [ "vmw_vsock_virtio_transport" ];
 
   # Use systemd-networkd for networking instead of scripted ifup.
   # Pairs with disabling the wait-online stall below.

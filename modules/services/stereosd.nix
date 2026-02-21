@@ -46,6 +46,12 @@
       # mount and umount are needed for shared directory mounting
       path = [ pkgs.util-linux pkgs.coreutils ];
 
+      # Ensure kernel modules (including vmw_vsock_virtio_transport) are
+      # loaded before stereosd starts. Without this, stereosd's
+      # VsockTransportAvailable() check races against module loading and
+      # may fall back to TCP even when a vsock transport is present.
+      after = [ "systemd-modules-load.service" ];
+
       serviceConfig = {
         # Override: stereosd needs to run as root in StereOS because it must:
         #   - Bind to AF_VSOCK sockets
