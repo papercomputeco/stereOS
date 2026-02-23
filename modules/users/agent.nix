@@ -31,14 +31,12 @@ let
     # Development essentials
     git
     curl
-    wget
     jq
     ripgrep
     tree
     file
     unzip
     gnumake
-    gcc
 
     # Editors
     vim

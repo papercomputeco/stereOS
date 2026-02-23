@@ -74,7 +74,6 @@
     git
     vim
     curl
-    wget
     jq
     ripgrep
     htop

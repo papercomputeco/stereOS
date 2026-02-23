@@ -15,6 +15,7 @@
         pkgs.gopls
         pkgs.gotools
         pkgs.hurl
+        pkgs.zstd
         inputs.dagger.packages.${system}.dagger
       ];
 
