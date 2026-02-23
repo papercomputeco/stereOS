@@ -11,7 +11,7 @@
       buildInputs = [
         pkgs.gnumake
         pkgs.qemu
-        pkgs.go
+        pkgs.go_1_25
         pkgs.gopls
         pkgs.gotools
         pkgs.hurl

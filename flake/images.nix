@@ -6,14 +6,21 @@
 #   packages.<system>.<mixtape-name>                    (raw)
 #   packages.<system>.<mixtape-name>-qcow2              (qcow2)
 #   packages.<system>.<mixtape-name>-kernel-artifacts   (direct-kernel boot)
+#   packages.<system>.<mixtape-name>-dist               (all formats + mixtape.toml)
 #
 # Build with:
 #   nix build .#packages.aarch64-linux.opencode-mixtape --impure
 #   nix build .#packages.aarch64-linux.opencode-mixtape-qcow2 --impure
 #   nix build .#packages.aarch64-linux.opencode-mixtape-kernel-artifacts --impure
+#   nix build .#packages.aarch64-linux.opencode-mixtape-dist --impure
 
-{ self, ... }:
+{ self, inputs, ... }:
 
+let
+  stereos-lib = import ../lib/dist.nix { inherit inputs; };
+  system = "aarch64-linux";
+  pkgs = inputs.nixpkgs.legacyPackages.${system};
+in
 {
   # Image packages are not per-system in the flake-parts sense — they are
   # always built for the target architecture (aarch64-linux).  We expose
@@ -22,6 +29,8 @@
     packages.aarch64-linux =
       let
         configs = self.nixosConfigurations;
+        mixtapeNames = builtins.attrNames configs;
+
         # Raw images — canonical artifact
         rawPkgs = builtins.mapAttrs
           (_name: cfg: cfg.config.system.build.raw)
@@ -35,7 +44,7 @@
           builtins.map (name: {
             name = "${name}-qcow2";
             value = qcow2Pkgs.${name};
-          }) (builtins.attrNames qcow2Pkgs)
+          }) mixtapeNames
         );
         # Kernel artifacts (bzImage + initrd + cmdline) for direct-kernel boot.
         # Build with: nix build .#packages.aarch64-linux.<name>-kernel-artifacts
@@ -46,9 +55,23 @@
           builtins.map (name: {
             name = "${name}-kernel-artifacts";
             value = kernelArtifactPkgs.${name};
-          }) (builtins.attrNames kernelArtifactPkgs)
+          }) mixtapeNames
+        );
+        # Dist directories — all formats assembled into a single output.
+        # Build with: nix build .#packages.aarch64-linux.<name>-dist
+        distPkgs = builtins.listToAttrs (
+          builtins.map (name: {
+            name = "${name}-dist";
+            value = stereos-lib.mkDist {
+              inherit pkgs system;
+              name   = name;
+              raw    = rawPkgs.${name};
+              qcow2  = qcow2Pkgs.${name};
+              kernel = kernelArtifactPkgs.${name};
+            };
+          }) mixtapeNames
         );
       in
-        rawPkgs // qcow2Named // kernelArtifactsNamed;
+        rawPkgs // qcow2Named // kernelArtifactsNamed // distPkgs;
   };
 }

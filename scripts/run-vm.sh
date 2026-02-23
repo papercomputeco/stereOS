@@ -15,7 +15,7 @@
 #   ./scripts/run-vm.sh [path-to-image] [ssh-port]
 #
 # Defaults:
-#   image: ./result/nixos.img (raw) or ./result/nixos.qcow2
+#   image: ./result/stereos.img (raw) or ./result/stereos.qcow2
 #   port:  2222
 #
 # Requires: nix devShell (provides QEMU and STEREOS_EFI_CODE)
@@ -26,15 +26,15 @@ set -euo pipefail
 # Try raw first (canonical format), fall back to qcow2
 if [ -n "${1:-}" ]; then
   IMAGE="$1"
-elif [ -f "./result/nixos.img" ]; then
-  IMAGE="./result/nixos.img"
-elif [ -f "./result/nixos.qcow2" ]; then
-  IMAGE="./result/nixos.qcow2"
+elif [ -f "./result/stereos.img" ]; then
+  IMAGE="./result/stereos.img"
+elif [ -f "./result/stereos.qcow2" ]; then
+  IMAGE="./result/stereos.qcow2"
 else
   echo "ERROR: No image found."
   echo "Build one first:"
-  echo "  make build         # → result/nixos.img (raw)"
-  echo "  make build-qcow2   # → result/nixos.qcow2"
+  echo "  make build         # → result/stereos.img (raw)"
+  echo "  make build-qcow2   # → result/stereos.qcow2"
   exit 1
 fi
 

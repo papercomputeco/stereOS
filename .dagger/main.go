@@ -20,7 +20,7 @@ func New(
 	// Directory of the flake's source
 	//
 	// +defaultPath="/"
-	// +ignore=["build", ".git"]
+	// +ignore=["build", ".git", "result", ".direnv"]
 	Source *dagger.Directory,
 ) *StereOS {
 	return &StereOS{
