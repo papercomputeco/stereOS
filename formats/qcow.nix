@@ -17,7 +17,7 @@ in
   } ''
     mkdir -p $out
     qemu-img convert -f raw -O qcow2 \
-      ${config.system.build.raw}/nixos.img \
-      $out/nixos.qcow2
+      ${config.system.build.raw}/stereos.img \
+      $out/stereos.qcow2
   '';
 }

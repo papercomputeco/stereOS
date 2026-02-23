@@ -19,6 +19,7 @@ in
     inherit lib config pkgs;
 
     name = imageName;
+    baseName = "stereos";
 
     # Disk sizing: "auto" calculates the minimum size needed for the
     # closure, then adds additionalSpace on top.
