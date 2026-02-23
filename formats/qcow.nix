@@ -16,7 +16,7 @@ in
     nativeBuildInputs = [ pkgs.qemu ];
   } ''
     mkdir -p $out
-    qemu-img convert -f raw -O qcow2 \
+    qemu-img convert -f raw -O qcow2 -c \
       ${config.system.build.raw}/stereos.img \
       $out/stereos.qcow2
   '';

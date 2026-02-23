@@ -24,7 +24,7 @@ in
     # Disk sizing: "auto" calculates the minimum size needed for the
     # closure, then adds additionalSpace on top.
     diskSize = "auto";
-    additionalSpace = "4096M";  # 4 GB free space for agent work
+    additionalSpace = "1024M";  # 1 GB free space for agent work
 
     # Raw format — uncompressed, required by VZDiskImageStorageDeviceAttachment
     format = "raw";
