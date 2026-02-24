@@ -165,11 +165,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1771640744,
-        "narHash": "sha256-WqADmj9/KtLJOdW/RSaHoPky6Cwd+/2MjKbl9wIi4Fk=",
+        "lastModified": 1771898347,
+        "narHash": "sha256-TlkB0Vnf33+ToqELyha1OXEMPrMr6seDUOBD2xQefkM=",
         "owner": "papercomputeco",
         "repo": "stereosd",
-        "rev": "613df8b8a4f9c6a2858a7fa20653f4add87336c7",
+        "rev": "9aa0a88c217c4273ce4f888762739dfcc1396514",
         "type": "github"
       },
       "original": {
