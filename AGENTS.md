@@ -46,7 +46,7 @@ stereos/
 │   └── kernel-artifacts.nix        # Direct-kernel boot (bzImage + initrd + cmdline)
 │
 ├── lib/                            # Shared Nix helper functions
-│   └── default.nix                 # mkMixtape helper, SSH key logic
+│   └── default.nix                 # mkMixtape helper
 │
 ├── scripts/
 │   └── run-vm.sh                   # QEMU VM launcher

@@ -4,17 +4,18 @@
 
 { inputs }:
 
-let
-  inherit (inputs.nixpkgs) lib;
-in
 {
   # -- mkMixtape -------------------------------------------------------------
   #
   # Build a complete NixOS system configuration ("mixtape") from:
   #   - The shared stereOS module tree (modules/)
-  #   - A profile (profiles/base.nix, profiles/dev.nix)
+  #   - A profile (profiles/base.nix)
   #   - External flake modules (agentd, stereosd) + overlays
   #   - Mixtape-specific feature modules
+  #
+  # For dev builds, include profiles/dev.nix via extraModules to get
+  # SSH key injection and debug tooling.  Production builds should NOT
+  # include the dev profile.
   #
   # Usage:
   #   mkMixtape {
@@ -24,29 +25,6 @@ in
   #   }
   #
   mkMixtape = { name, features ? [], system ? "aarch64-linux", extraModules ? [] }:
-    let
-      # -- Dev-only: per-developer SSH key -----------------------------------
-      # POC ONLY -- will be replaced by agentd + vsock secret injection.
-      #
-      # Each developer creates ~/.config/stereos/ssh-key.pub with their
-      # public key.  If the file is missing, no SSH keys are baked in
-      # (the build no longer fails).
-      #
-      # Setup:
-      #   mkdir -p ~/.config/stereos
-      #   cp ~/.ssh/id_ed25519.pub ~/.config/stereos/ssh-key.pub
-      #
-      sshKeyPath = builtins.getEnv "HOME" + "/.config/stereos/ssh-key.pub";
-      sshKeys =
-        let
-          exists = builtins.pathExists sshKeyPath;
-        in
-          if exists then
-            let raw = builtins.readFile sshKeyPath;
-            in [ (lib.removeSuffix "\n" raw) ]
-          else
-            [];
-    in
     inputs.nixpkgs.lib.nixosSystem {
       inherit system;
       modules = [
@@ -69,13 +47,9 @@ in
         # Shared base profile
         ../profiles/base.nix
 
-        # Dev profile (SSH key injection)
-        ../profiles/dev.nix
-
         # Mixtape identity
         {
           networking.hostName = name;
-          stereos.ssh.authorizedKeys = sshKeys;
         }
       ] ++ features ++ extraModules;
     };
