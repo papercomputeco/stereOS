@@ -4,7 +4,7 @@
 # Based around the auto-documented Makefile:
 # http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
-MIXTAPE  ?= opencode-mixtape
+MIXTAPE  ?= opencode-mixtape-dev
 ARCH     ?= aarch64-linux
 SSH_PORT ?= 2222
 

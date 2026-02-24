@@ -46,7 +46,12 @@
         };
 
         # System configurations ("mixtapes")
+        #
+        # Default configurations are production-ready (no SSH keys baked in).
+        # Dev configurations (*-dev) include profiles/dev.nix which injects
+        # the developer's SSH key from ~/.config/stereos/ssh-key.pub.
         nixosConfigurations = {
+          # -- Production configurations --------------------------------------
           opencode-mixtape = stereos-lib.mkMixtape {
             name = "opencode-mixtape";
             features = [ ./mixtapes/opencode/base.nix ];
@@ -65,6 +70,31 @@
           full-mixtape = stereos-lib.mkMixtape {
             name = "full-mixtape";
             features = [ ./mixtapes/full/base.nix ];
+          };
+
+          # -- Dev configurations (SSH key injection) --------------------------
+          opencode-mixtape-dev = stereos-lib.mkMixtape {
+            name = "opencode-mixtape";
+            features = [ ./mixtapes/opencode/base.nix ];
+            extraModules = [ ./profiles/dev.nix ];
+          };
+
+          claude-code-mixtape-dev = stereos-lib.mkMixtape {
+            name = "claude-code-mixtape";
+            features = [ ./mixtapes/claude-code/base.nix ];
+            extraModules = [ ./profiles/dev.nix ];
+          };
+
+          gemini-cli-mixtape-dev = stereos-lib.mkMixtape {
+            name = "gemini-cli-mixtape";
+            features = [ ./mixtapes/gemini-cli/base.nix ];
+            extraModules = [ ./profiles/dev.nix ];
+          };
+
+          full-mixtape-dev = stereos-lib.mkMixtape {
+            name = "full-mixtape";
+            features = [ ./mixtapes/full/base.nix ];
+            extraModules = [ ./profiles/dev.nix ];
           };
         };
       };

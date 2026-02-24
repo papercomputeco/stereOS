@@ -13,12 +13,25 @@
 # Setup:
 #   mkdir -p ~/.config/stereos
 #   cp ~/.ssh/id_ed25519.pub ~/.config/stereos/ssh-key.pub
+#
+# Usage:
+#   Include this profile in mkMixtape's extraModules for dev builds.
+#   Production builds should NOT include this profile.
 
 { config, lib, pkgs, ... }:
 
+let
+  sshKeyPath = builtins.getEnv "HOME" + "/.config/stereos/ssh-key.pub";
+  sshKeys =
+    let
+      exists = builtins.pathExists sshKeyPath;
+    in
+      if exists then
+        let raw = builtins.readFile sshKeyPath;
+        in [ (lib.removeSuffix "\n" raw) ]
+      else
+        [];
+in
 {
-  # The SSH key injection is handled in lib/default.nix (mkMixtape)
-  # which sets stereos.ssh.authorizedKeys. This profile exists as
-  # the canonical place to add dev-only configuration in the future
-  # (e.g., debug tools, verbose logging, etc.)
+  stereos.ssh.authorizedKeys = sshKeys;
 }
