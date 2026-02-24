@@ -57,6 +57,12 @@
     };
   };
 
+  # -- User authentication ---------------------------------------------------
+  # stereOS images are built without baked-in SSH keys or passwords.
+  # SSH authorized keys are ephemerally injected at VM boot time by stereosd
+  # over vsock.
+  users.allowNoPasswordLogin = true;
+
   # -- Nix settings ----------------------------------------------------------
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
