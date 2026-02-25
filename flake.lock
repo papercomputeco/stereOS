@@ -8,11 +8,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1771336930,
-        "narHash": "sha256-2/FkSmAKpygbF2EfVUDR5ZvcD/9edesKPKO8BWpD00o=",
+        "lastModified": 1771965841,
+        "narHash": "sha256-p4izQJPfb7hZTnm+b3n8GqAFhn7EA8MdCuEdWbX4pNM=",
         "owner": "papercomputeco",
         "repo": "agentd",
-        "rev": "d70ccb01865c69fc70aa29381eba23a74f683a0f",
+        "rev": "b03e4087586f478adf0a7885e1010741acf4bd07",
         "type": "github"
       },
       "original": {

@@ -5,8 +5,9 @@
 # but CANNOT invoke nix, nixos-rebuild, nix-env, or any nix tooling.
 #
 # Filesystem layout:
-#   /workspace  — agent's working directory (owned by agent, writable)
-#   /tmp, /run  — tmpfs (ephemeral, never persisted to disk)
+#   /home/agent           — agent's home directory (standard XDG base)
+#   /home/agent/workspace — agent's working directory (owned by agent, writable)
+#   /tmp, /run            — tmpfs (ephemeral, never persisted to disk)
 #
 # Also declares the shared stereos.ssh and stereos.agent options used
 # by both the agent and admin user modules.
@@ -81,9 +82,9 @@ let
     unset NIX_PATH NIX_REMOTE NIX_CONF_DIR NIX_USER_CONF_FILES
     unset NIX_PROFILES NIX_STORE
 
-    # Default working directory to /workspace
-    if [ -d /workspace ]; then
-      cd /workspace
+    # Default working directory to ~/workspace
+    if [ -d "$HOME/workspace" ]; then
+      cd "$HOME/workspace"
     fi
 
     # Exec into a clean bash session
@@ -114,22 +115,25 @@ in
     # Register the custom shell so NixOS accepts it as a valid login shell
     environment.shells = [ "${agentShell}/bin/stereos-agent-shell" ];
 
-    # -- Agent user (restricted) ---------------------------------------------
+    # -- Agent group + user (restricted) --------------------------------------
+    # The agent group must exist for systemd-tmpfiles rules that reference it.
+    users.groups.agent = {};
+
     users.users.agent = {
       isNormalUser = true;
-      home = "/workspace";
-      createHome = false;  # We create /workspace via systemd-tmpfiles
+      group = "agent";
+      home = "/home/agent";
       shell = "${agentShell}/bin/stereos-agent-shell";
-      extraGroups = [];  # No wheel, no special groups
+      extraGroups = [];
       openssh.authorizedKeys.keys = config.stereos.ssh.authorizedKeys;
     };
 
-    # -- /workspace: the agent's writable working directory ------------------
+    # -- ~/workspace: the agent's writable working directory ------------------
     # Created at boot, owned by the agent user.  In production, this may
     # be a mount point for a virtio-fs or 9p shared directory from the
     # host (configured via jcard.toml [[shared]] entries).
     systemd.tmpfiles.rules = [
-      "d /workspace 0755 agent agent -"
+      "d /home/agent/workspace 0755 agent agent -"
     ];
 
     # -- Layer 3: Explicit sudo denial ---------------------------------------

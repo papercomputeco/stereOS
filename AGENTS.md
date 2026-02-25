@@ -23,7 +23,7 @@ stereos/
 │   │   ├── stereosd.nix            # stereosd service overrides (tmpfiles, firewall, DynamicUser)
 │   │   └── agentd.nix              # agentd service overrides (ordering, DynamicUser)
 │   └── users/
-│       ├── agent.nix               # Agent user: restricted shell, /workspace, sudo denial, options
+│       ├── agent.nix               # Agent user: restricted shell, ~/workspace, sudo denial, options
 │       └── admin.nix               # Admin user: wheel/admin group, passwordless sudo
 │
 ├── profiles/                       # Composable configuration presets
