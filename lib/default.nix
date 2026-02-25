@@ -10,7 +10,7 @@
   # Build a complete NixOS system configuration ("mixtape") from:
   #   - The shared stereOS module tree (modules/)
   #   - A profile (profiles/base.nix)
-  #   - External flake modules (agentd, stereosd) + overlays
+  #   - External flake modules (agentd, stereosd, nix-openclaw) + overlays
   #   - Mixtape-specific feature modules
   #
   # For dev builds, include profiles/dev.nix via extraModules to get
@@ -28,16 +28,20 @@
     inputs.nixpkgs.lib.nixosSystem {
       inherit system;
       modules = [
-        # External flake NixOS modules -- provide services.agentd and
-        # services.stereosd options + baseline systemd units.
+        # External flake NixOS modules -- provide services.agentd,
+        # services.stereosd, and services.openclaw-gateway options +
+        # baseline systemd units.
         inputs.agentd.nixosModules.default
         inputs.stereosd.nixosModules.default
+        inputs.nix-openclaw.nixosModules.openclaw-gateway
 
-        # Apply overlays so pkgs.agentd and pkgs.stereosd are available.
+        # Apply overlays so pkgs.agentd, pkgs.stereosd, and
+        # pkgs.openclaw-gateway are available.
         ({ ... }: {
           nixpkgs.overlays = [
             inputs.agentd.overlays.default
             inputs.stereosd.overlays.default
+            inputs.nix-openclaw.overlays.default
           ];
         })
 

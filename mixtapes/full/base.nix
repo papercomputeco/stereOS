@@ -10,5 +10,6 @@
     ../opencode/base.nix
     ../claude-code/base.nix
     ../gemini-cli/base.nix
+    ../openclaw/base.nix
   ];
 }
