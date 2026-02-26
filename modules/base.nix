@@ -88,6 +88,7 @@
     file
     unzip
     ghostty.terminfo  # xterm-ghostty terminfo entry
+    gvisor            # runsc: gVisor sandbox runtime for sandboxed agents
   ];
 
   # -- Locale and timezone ---------------------------------------------------

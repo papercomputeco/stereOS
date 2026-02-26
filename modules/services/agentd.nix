@@ -8,9 +8,11 @@
 #
 #   - Service ordering: agentd starts AFTER and REQUIRES stereosd
 #   - Security hardening for the stereOS VM environment
+#   - gVisor (runsc) sandbox support
 #
-# agentd manages tmux sessions for the agent user, allowing admin to
-# "tmux attach [session]" to introspect running agents.
+# agentd manages agent processes via either:
+#   - tmux sessions for "native" agents (admin introspects via tmux attach)
+#   - gVisor sandboxes for "sandboxed" agents (admin introspects via runsc exec)
 #
 # Depends on stereosd for:
 #   - Unix socket communication (/run/stereos/stereosd.sock)
@@ -23,11 +25,14 @@
     # Enable the agentd service from the external flake module.
     services.agentd.enable = true;
 
-    # -- Runtime directory for agentd tmux socket ----------------------------
-    # Separate from /run/stereos/ (root:admin) so the agent user can create
-    # and own the tmux socket. admin group can traverse to attach sessions.
+    # -- Runtime directories -------------------------------------------------
+    # /run/agentd:            tmux socket (owned by agent for native mode)
+    # /run/agentd/sandboxes:  OCI bundles for gVisor sandboxes
+    # /run/agentd/runsc-state: runsc container state
     systemd.tmpfiles.rules = [
       "d /run/agentd 0750 agent admin -"
+      "d /run/agentd/sandboxes 0750 root admin -"
+      "d /run/agentd/runsc-state 0750 root admin -"
     ];
 
     # -- stereOS-specific service overrides ----------------------------------
@@ -37,9 +42,15 @@
       after = [ "stereosd.service" ];
       requires = [ "stereosd.service" ];
 
+      # Add gVisor (runsc) and nix-store to the service PATH.
+      # runsc: required for sandboxed agent mode.
+      # nix: provides resolving nix packages for "extra_packages"
+      path = [ pkgs.gvisor pkgs.nix ];
+
       serviceConfig = {
         # Override: disable DynamicUser in favour of stereOS's own user model.
-        # agentd runs as root so it can manage tmux sessions for the agent user.
+        # agentd runs as root so it can manage tmux sessions for the agent
+        # user (native mode) and runsc containers (sandboxed mode).
         DynamicUser = lib.mkForce false;
 
         Restart = lib.mkForce "on-failure";
