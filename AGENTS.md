@@ -4,7 +4,7 @@
 
 `stereOS` is a Linux based operating system purpose built for AI agents.
 
-### Project Structure
+### Architecture
 
 ```
 stereos/
@@ -52,6 +52,25 @@ stereos/
 │   └── run-vm.sh                   # QEMU VM launcher
 ├── Makefile                        # Build command runner (make help for targets)
 └── .envrc                          # direnv integration for nix flake dev shell
+```
+
+### mkMixtape
+
+Every mixtape is assembled by `lib/default.nix:mkMixtape`, which calls
+`nixpkgs.lib.nixosSystem` with:
+
+1. External flake modules (`agentd`, `stereosd`) + their overlays
+2. The stereOS module tree (`modules/`)
+3. The shared base profile (`profiles/base.nix`)
+4. Mixtape-specific feature modules (e.g. `mixtapes/opencode/base.nix`)
+5. Optional extra modules (e.g. `profiles/dev.nix` for dev builds)
+
+```nix
+mkMixtape {
+  name     = "opencode-mixtape";
+  features = [ ./mixtapes/opencode/base.nix ];
+  # extraModules = [ ./profiles/dev.nix ];  # dev builds only
+}
 ```
 
 ### Do
