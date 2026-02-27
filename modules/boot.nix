@@ -209,7 +209,7 @@
     after = [ "stereosd.service" ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.coreutils}/bin/sh -c '${pkgs.coreutils}/bin/date +%s%N > /run/stereos-ready'";
+      ExecStart = "${pkgs.bash}/bin/sh -c '${pkgs.coreutils}/bin/date > /run/stereos-ready'";
     };
   };
 }
