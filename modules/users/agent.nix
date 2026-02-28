@@ -15,49 +15,10 @@
 { config, lib, pkgs, ... }:
 
 let
-  # -- Curated set of binaries the agent can access -------------------------
-  # This is the ONLY thing on the agent's PATH.
-  # Add packages here as needed — but never add nix tools.
-  agentPackages = with pkgs; [
-    # Core POSIX utilities
-    coreutils
-    gnugrep
-    gnused
-    gawk
-    findutils
-    diffutils
-    less
-    which
-
-    # Development essentials
-    git
-    curl
-    jq
-    ripgrep
-    tree
-    file
-    unzip
-    gnumake
-
-    # Editors
-    vim
-
-    # Terminal multiplexer
-    tmux
-
-    # Process inspection (safe subset)
-    htop
-    procps  # ps, top, etc.
-
-    # Networking
-    openssh  # ssh client for agent-to-agent or git-over-ssh
-    cacert   # TLS certificates
-  ];
-
   # Build a single directory containing symlinks to all approved binaries
   agentEnv = pkgs.buildEnv {
     name = "stereos-agent-env";
-    paths = agentPackages;
+    paths = config.stereos.agent.basePackages;
     pathsToLink = [ "/bin" "/lib" "/share" "/etc" ];
   };
 
@@ -99,6 +60,53 @@ in
       type = lib.types.listOf lib.types.str;
       default = [];
       description = "SSH public keys authorized for both admin and agent users.";
+    };
+
+    agent.basePackages = lib.mkOption {
+      type = lib.types.listOf lib.types.package;
+      description = ''
+        Curated set of packages available on the agent's PATH and in the
+        gVisor sandbox closure.  Override to add or remove base tools;
+        use stereos.agent.extraPackages for mixtape-specific additions.
+      '';
+      default = with pkgs; [
+        # Core POSIX utilities
+        coreutils
+        gnugrep
+        gnused
+        gawk
+        findutils
+        diffutils
+        less
+        which
+
+        # Development essentials
+        git
+        curl
+        jq
+        ripgrep
+        tree
+        file
+        unzip
+        gnumake
+
+        # Editors
+        vim
+
+        # Terminal multiplexer
+        tmux
+
+        # Process inspection (safe subset)
+        htop
+        procps  # ps, top, etc.
+
+        # Networking
+        openssh  # ssh client for agent-to-agent or git-over-ssh
+        cacert   # TLS certificates
+
+        # Shell (needed as the sandbox entrypoint)
+        bash
+      ];
     };
 
     agent.extraPackages = lib.mkOption {
