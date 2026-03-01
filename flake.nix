@@ -16,6 +16,11 @@
       url = "github:papercomputeco/stereosd";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    nix-openclaw = {
+      url = "github:openclaw/nix-openclaw";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs@{ flake-parts, ... }:
@@ -72,6 +77,11 @@
             features = [ ./mixtapes/full/base.nix ];
           };
 
+          openclaw-mixtape = stereos-lib.mkMixtape {
+            name = "openclaw-mixtape";
+            features = [ ./mixtapes/openclaw/base.nix ];
+          };
+
           # -- Dev configurations (SSH key injection) --------------------------
           opencode-mixtape-dev = stereos-lib.mkMixtape {
             name = "opencode-mixtape";
@@ -94,6 +104,12 @@
           full-mixtape-dev = stereos-lib.mkMixtape {
             name = "full-mixtape";
             features = [ ./mixtapes/full/base.nix ];
+            extraModules = [ ./profiles/dev.nix ];
+          };
+
+          openclaw-mixtape-dev = stereos-lib.mkMixtape {
+            name = "openclaw-mixtape";
+            features = [ ./mixtapes/openclaw/base.nix ];
             extraModules = [ ./profiles/dev.nix ];
           };
         };
