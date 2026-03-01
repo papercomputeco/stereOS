@@ -52,48 +52,26 @@
         # the developer's SSH key from ~/.config/stereos/ssh-key.pub.
         nixosConfigurations = {
           # -- Production configurations --------------------------------------
-          opencode-mixtape = stereos-lib.mkMixtape {
-            name = "opencode-mixtape";
-            features = [ ./mixtapes/opencode/base.nix ];
+          base = stereos-lib.mkMixtape {
+            name = "base";
+            features = [ ./mixtapes/base/package.nix ];
           };
 
-          claude-code-mixtape = stereos-lib.mkMixtape {
-            name = "claude-code-mixtape";
-            features = [ ./mixtapes/claude-code/base.nix ];
-          };
-
-          gemini-cli-mixtape = stereos-lib.mkMixtape {
-            name = "gemini-cli-mixtape";
-            features = [ ./mixtapes/gemini-cli/base.nix ];
-          };
-
-          full-mixtape = stereos-lib.mkMixtape {
-            name = "full-mixtape";
-            features = [ ./mixtapes/full/base.nix ];
+          coder = stereos-lib.mkMixtape {
+            name = "coder";
+            features = [ ./mixtapes/coder/package.nix ];
           };
 
           # -- Dev configurations (SSH key injection) --------------------------
-          opencode-mixtape-dev = stereos-lib.mkMixtape {
-            name = "opencode-mixtape";
-            features = [ ./mixtapes/opencode/base.nix ];
+          base-dev = stereos-lib.mkMixtape {
+            name = "base";
+            features = [ ./mixtapes/base/package.nix ];
             extraModules = [ ./profiles/dev.nix ];
           };
 
-          claude-code-mixtape-dev = stereos-lib.mkMixtape {
-            name = "claude-code-mixtape";
-            features = [ ./mixtapes/claude-code/base.nix ];
-            extraModules = [ ./profiles/dev.nix ];
-          };
-
-          gemini-cli-mixtape-dev = stereos-lib.mkMixtape {
-            name = "gemini-cli-mixtape";
-            features = [ ./mixtapes/gemini-cli/base.nix ];
-            extraModules = [ ./profiles/dev.nix ];
-          };
-
-          full-mixtape-dev = stereos-lib.mkMixtape {
-            name = "full-mixtape";
-            features = [ ./mixtapes/full/base.nix ];
+          coder-dev = stereos-lib.mkMixtape {
+            name = "coder";
+            features = [ ./mixtapes/coder/package.nix ];
             extraModules = [ ./profiles/dev.nix ];
           };
         };
