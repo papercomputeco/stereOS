@@ -2,7 +2,8 @@
   description = "stereOS — a NixOS-based operating system for AI agents";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     dagger.url = "github:dagger/nix";
     dagger.inputs.nixpkgs.follows = "nixpkgs";
@@ -18,9 +19,9 @@
     };
   };
 
-  outputs = inputs@{ flake-parts, ... }:
+  outputs = inputs@{ self, flake-parts, ... }:
     let
-      stereos-lib = import ./lib { inherit inputs; };
+      stereos-lib = import ./lib { inherit inputs self; };
     in
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [

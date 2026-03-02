@@ -87,5 +87,5 @@ stereOS declares two custom options:
 |-------------|-----------|----------|
 | `agentd` | `github:papercomputeco/agentd` | `services.agentd` NixOS module + overlay |
 | `stereosd` | `github:papercomputeco/stereosd` | `services.stereosd` NixOS module + overlay |
-| `nixpkgs` | `nixpkgs-unstable` | Base packages |
+| `nixpkgs` | `nixos-25.11` | Base packages |
 | `dagger` | `github:dagger/nix` | CI engine |

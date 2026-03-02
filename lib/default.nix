@@ -2,9 +2,41 @@
 #
 # Shared Nix helper functions for stereOS.
 
-{ inputs }:
+{ inputs, self }:
+
+let
+  # -- stereOS version -------------------------------------------------------
+  #
+  # CI sets STEREOS_VERSION to the git tag (e.g. "2026.03.01.0") before
+  # building with --impure.  Local dev builds fall back to a commit-based
+  # string so every image always carries *some* identity.
+  #
+  # Resolution order:
+  #   1. $STEREOS_VERSION env var     (CI — requires --impure)
+  #   2. "dev-<shortRev>"             (clean git worktree)
+  #   3. "dev-<dirtyShortRev>"        (dirty git worktree)
+  #   4. "dev-<lastModifiedDate>"     (path: input with no git context)
+  #
+  # Note: when consuming stereOS via --override-input, prefer
+  # "git+file:" over "path:" to preserve git revision metadata.
+  #
+  envVersion = builtins.getEnv "STEREOS_VERSION";
+
+  stereosVersion =
+    if envVersion != "" then envVersion
+    else if self ? shortRev then "dev-${self.shortRev}"
+    else if self ? dirtyShortRev then "dev-${self.dirtyShortRev}"
+    else "dev-${self.lastModifiedDate or "unknown"}";
+
+  # Git revision for system.configurationRevision
+  gitRevision = self.rev or self.dirtyRev or "unknown";
+in
 
 rec {
+  # Expose the computed version so other flake modules can use it
+  # (e.g. flake/images.nix passes it to mkDist for mixtape.toml).
+  inherit stereosVersion;
+
   # -- mkSandboxManifest -----------------------------------------------------
   #
   # Returns a NixOS module that pre-computes the Nix store closure for the
@@ -65,6 +97,13 @@ rec {
   mkMixtape = { name, features ? [], system ? "aarch64-linux", extraModules ? [] }:
     inputs.nixpkgs.lib.nixosSystem {
       inherit system;
+      specialArgs = {
+        inherit stereosVersion gitRevision;
+        pkgs-unstable = import inputs.nixpkgs-unstable {
+          inherit system;
+          config.allowUnfree = true;
+        };
+      };
       modules = [
         # External flake NixOS modules -- provide services.agentd and
         # services.stereosd options + baseline systemd units.

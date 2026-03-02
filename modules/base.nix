@@ -5,7 +5,7 @@
 #
 # Boot configuration lives in boot.nix.
 
-{ config, lib, pkgs, modulesPath, ... }:
+{ config, lib, pkgs, modulesPath, stereosVersion, gitRevision, ... }:
 
 {
   imports = [
@@ -16,19 +16,29 @@
   # NixOS system version to track
   system.stateVersion = "24.11";
 
+  # -- stereOS version identity ----------------------------------------------
+  # Label shown by `nixos-version` and in boot entries.
+  # e.g. "stereOS-2026.03.01.0-coder" or "stereOS-dev-abc1234-coder"
+  system.nixos.label = "stereOS-${stereosVersion}-${config.networking.hostName}";
+
+  # Exact git commit — shows up in `nixos-version --json`.
+  system.configurationRevision = gitRevision;
+
   # -- stereOS system identity -----------------------------------------------
   # Override /etc/os-release so tools like hostnamectl show stereOS
   environment.etc."os-release".text = lib.mkForce ''
     NAME="stereOS"
     ID=stereos
     ID_LIKE=nixos
-    VERSION="${config.system.nixos.version}"
-    VERSION_ID="${config.system.nixos.version}"
-    PRETTY_NAME="stereOS (${config.networking.hostName})"
-    HOME_URL="https://github.com/paper-compute-co"
+    VERSION="${stereosVersion}"
+    VERSION_ID="${stereosVersion}"
+    VERSION_CODENAME="${config.networking.hostName}"
+    PRETTY_NAME="stereOS ${stereosVersion} (${config.networking.hostName})"
+    HOME_URL="https://github.com/papercomputeco/stereOS"
+    NIXOS_VERSION="${config.system.nixos.version}"
   '';
 
-  # "Sub- Zero" ASCII art stereOS logo for ssh splash
+  # "Sub-Zero" ASCII art stereOS logo for ssh splash
   users.motd = ''
   ______   ______  ______   ______   ______   ______   ______
  /\  ___\ /\__  _\/\  ___\ /\  == \ /\  ___\ /\  __ \ /\  ___\
@@ -36,6 +46,7 @@
   \/\_____\  \ \_\ \ \_____\\ \_\ \_\\ \_____\\ \_____\\/\_____\
    \/_____/   \/_/  \/_____/ \/_/ /_/ \/_____/ \/_____/ \/_____/
 
+    stereOS ${stereosVersion}
     Mixtape: ${config.networking.hostName}
 
   '';
