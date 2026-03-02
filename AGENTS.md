@@ -31,14 +31,10 @@ stereos/
 │   └── dev.nix                     # Dev-only: SSH key injection, debug tools
 │
 ├── mixtapes/                       # Mixtapes — spins with specific packages/configs
-│   ├── opencode/
-│   │   └── base.nix                # OpenCode AI coding agent
-│   ├── claude-code/
-│   │   └── base.nix                # Claude Code (Anthropic CLI)
-│   ├── gemini-cli/
-│   │   └── base.nix                # Gemini CLI (Google)
-│   └── full/
-│       └── base.nix                # All agents combined
+│   ├── base/
+│   │   └── package.nix             # Base system — no extra agent tooling
+│   └── coder/
+│       └── package.nix             # All AI coding agents (claude-code, gemini-cli, opencode)
 │
 ├── formats/                        # Image format definitions
 │   ├── raw-efi.nix                 # Raw EFI disk image (canonical artifact)
@@ -62,13 +58,13 @@ Every mixtape is assembled by `lib/default.nix:mkMixtape`, which calls
 1. External flake modules (`agentd`, `stereosd`) + their overlays
 2. The stereOS module tree (`modules/`)
 3. The shared base profile (`profiles/base.nix`)
-4. Mixtape-specific feature modules (e.g. `mixtapes/opencode/base.nix`)
+4. Mixtape-specific feature modules (e.g. `mixtapes/coder/package.nix`)
 5. Optional extra modules (e.g. `profiles/dev.nix` for dev builds)
 
 ```nix
 mkMixtape {
-  name     = "opencode-mixtape";
-  features = [ ./mixtapes/opencode/base.nix ];
+  name     = "coder";
+  features = [ ./mixtapes/coder/package.nix ];
   # extraModules = [ ./profiles/dev.nix ];  # dev builds only
 }
 ```
