@@ -4,26 +4,36 @@
 # Based around the auto-documented Makefile:
 # http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
+# -- Image builds ------------------------------------------------------------
+#
+# The "ARCH" env var must be specified for image builds.
+
 MIXTAPE  ?= coder
-ARCH     ?= aarch64-linux
+ARCH     ?=
 SSH_PORT ?= 2222
 
-# -- Image builds ------------------------------------------------------------
+define require-arch
+	$(if $(ARCH),,$(error ARCH is required. Use ARCH=aarch64-linux or ARCH=x86_64-linux))
+endef
 
 .PHONY: dist
 dist: ## Build all formats and assemble dist/ for publishing
+	$(call require-arch)
 	nix build .#packages.$(ARCH).$(MIXTAPE)-dist --impure
 
 .PHONY: build
 build: ## Build the default base mixtape (raw image)
+	$(call require-arch)
 	nix build .#packages.$(ARCH).$(MIXTAPE) --impure
 
 .PHONY: build-qcow2
 build-qcow2: ## Build the default mixtape (qcow2 image)
+	$(call require-arch)
 	nix build .#packages.$(ARCH).$(MIXTAPE)-qcow2 --impure
 
 .PHONY: build-kernel
 build-kernel: ## Build kernel artifacts for kernel boot
+	$(call require-arch)
 	nix build .#packages.$(ARCH).$(MIXTAPE)-kernel-artifacts --impure
 
 # -- VM development operations ------------------------------------------------
