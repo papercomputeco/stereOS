@@ -11,7 +11,7 @@
 # Required environment variables at runtime (depending on provider):
 #   ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY / GOOGLE_API_KEY
 
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, pkgs-unstable, ... }:
 
 {
   # Allow unfree packages required by this mixtape
@@ -20,20 +20,20 @@
       "claude-code"
     ];
 
-  # Add all coding agents to the agent's restricted PATH
+  # Add all coding agents to the agent's restricted PATH (from unstable)
   stereos.agent.extraPackages = [
-    pkgs.claude-code
-    pkgs.codex
-    pkgs.gemini-cli
-    pkgs.opencode
+    pkgs-unstable.claude-code
+    pkgs-unstable.codex
+    pkgs-unstable.gemini-cli
+    pkgs-unstable.opencode
   ];
 
   # Also make them available system-wide (for admin use)
   environment.systemPackages = [
-    pkgs.claude-code
-    pkgs.codex
-    pkgs.gemini-cli
-    pkgs.opencode
+    pkgs-unstable.claude-code
+    pkgs-unstable.codex
+    pkgs-unstable.gemini-cli
+    pkgs-unstable.opencode
   ];
 
   # Claude Code: disable auto-updater (belt-and-suspenders; Nix package sets this too)

@@ -18,6 +18,7 @@
 
 let
   stereos-lib = import ../lib/dist.nix { inherit inputs; };
+  stereos-main = import ../lib { inherit inputs self; };
   system = "aarch64-linux";
   pkgs = inputs.nixpkgs.legacyPackages.${system};
 in
@@ -64,10 +65,11 @@ in
             name = "${name}-dist";
             value = stereos-lib.mkDist {
               inherit pkgs system;
-              name   = name;
-              raw    = rawPkgs.${name};
-              qcow2  = qcow2Pkgs.${name};
-              kernel = kernelArtifactPkgs.${name};
+              name    = name;
+              version = stereos-main.stereosVersion;
+              raw     = rawPkgs.${name};
+              qcow2   = qcow2Pkgs.${name};
+              kernel  = kernelArtifactPkgs.${name};
             };
           }) mixtapeNames
         );
