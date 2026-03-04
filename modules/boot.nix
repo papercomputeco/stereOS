@@ -2,8 +2,6 @@
 #
 # Boot configuration and boot-time optimizations for stereOS.
 #
-# aarch64 requires UEFI boot — there is no BIOS on ARM.
-#
 # Boot optimizations target sub-3-second boot for the stereOS agent
 # sandbox image when launched via QEMU (-M microvm) or Apple
 # Virtualization.framework.
@@ -18,10 +16,14 @@
 
 { config, lib, pkgs, ... }:
 
+let
+  isAarch64 = pkgs.system == "aarch64-linux";
+in
 {
   # -- Boot ------------------------------------------------------------------
-  # efiInstallAsRemovable puts GRUB at /EFI/BOOT/BOOTAA64.EFI,
-  # which is the fallback path QEMU's UEFI firmware searches.
+  # efiInstallAsRemovable=true puts GRUB at /EFI/BOOT/BOOTAA64.EFI (aarch64)
+  # or /EFI/BOOT/BOOTX64.EFI (x86_64), which is the fallback path
+  # QEMU's UEFI firmware searches. The correct filename is determined by grub-install.
   boot.loader.grub = {
     enable = true;
     efiSupport = true;
@@ -34,15 +36,21 @@
   # of them, but only the *last* one becomes /dev/console (used by init and
   # systemd for stdin/stdout). We list the primary console last.
   #
+  # aarch64:
   #   ttyAMA0  — PL011 UART on QEMU's virt machine (aarch64 -serial)
   #   hvc0     — virtio console on Apple Virtualization.framework
   #   tty0     — virtual terminal (active when a display is attached)
   #
-  # With this ordering, hvc0 is /dev/console. QEMU's -serial still captures
-  # ttyAMA0 output. Apple Virt's VirtioConsoleDevice captures hvc0.
+  # x86_64:
+  #   ttyS0    — COM1 serial port on QEMU standard PC
+  #   tty0     — virtual terminal
+  #
+  # With this ordering, hvc0/ttyS0 is /dev/console.
   boot.kernelParams = lib.mkMerge [
     (lib.mkBefore [ "quiet" "loglevel=0" ])
-    [ "console=tty0" "console=ttyAMA0,115200" "console=hvc0" ]
+    (if isAarch64
+      then [ "console=tty0" "console=ttyAMA0,115200" "console=hvc0" ]
+      else [ "console=tty0" "console=ttyS0,115200" ])
   ];
   boot.growPartition = true;
 

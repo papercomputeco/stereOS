@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Launch a stereOS image in QEMU on Apple Silicon.
+# Launch a stereOS image in QEMU.
 #
 # Supports two boot modes (auto-detected):
 #   1. Direct kernel boot — uses kernel artifacts (bzImage, initrd, cmdline)
@@ -12,15 +12,36 @@
 # writable qcow2 for runtime mutations.
 #
 # Usage:
-#   ./scripts/run-vm.sh [path-to-image] [ssh-port]
+#   ./scripts/run-vm.sh [path-to-image] [ssh-port] [arch]
 #
 # Defaults:
 #   image: ./result/stereos.img (raw) or ./result/stereos.qcow2
 #   port:  2222
+#   arch:  aarch64 (or x86_64)
 #
 # Requires: nix devShell (provides QEMU and STEREOS_EFI_CODE)
 #
 set -euo pipefail
+
+# -- Detect target architecture -----------------------------------------------
+# Auto-detect from environment or use default
+TARGET_ARCH="${STEREOS_TARGET_ARCH:-aarch64}"
+case "$TARGET_ARCH" in
+  aarch64|arm64)
+    QEMU_SYSTEM="qemu-system-aarch64"
+    QEMU_MACHINE="virt,highmem=on"
+    ;;
+  x86_64|x64)
+    TARGET_ARCH="x86_64"
+    QEMU_SYSTEM="qemu-system-x86_64"
+    QEMU_MACHINE="pc,accel=hvf"
+    ;;
+  *)
+    echo "ERROR: Unknown architecture: $TARGET_ARCH"
+    echo "Supported: aarch64, x86_64"
+    exit 1
+    ;;
+esac
 
 # -- Locate image ------------------------------------------------------------
 # Try raw first (canonical format), fall back to qcow2
@@ -34,7 +55,7 @@ else
   echo "ERROR: No image found."
   echo "Build one first:"
   echo "  make build         # → result/stereos.img (raw)"
-  echo "  make build-qcow2   # → result/stereos.qcow2"
+  echo "  make build-qcow2  # → result/stereos.qcow2"
   exit 1
 fi
 
@@ -62,7 +83,7 @@ if [ "$BOOT_MODE" = "efi" ]; then
     echo "Run this script from inside the nix devShell: nix develop"
     echo ""
     echo "Alternatively, build kernel artifacts for direct boot (no EFI needed):"
-    echo "  nix build .#packages.aarch64-linux.<mixtape>-kernel-artifacts --impure -o result-kernel"
+    echo "  nix build .#packages.${TARGET_ARCH}-linux.<mixtape>-kernel-artifacts --impure -o result-kernel"
     exit 1
   fi
   if [ ! -f "$STEREOS_EFI_CODE" ]; then
@@ -133,6 +154,7 @@ fi
 
 echo "══════════════════════════════════════════════════════════"
 echo "  stereOS VM starting"
+echo "  Arch:   $TARGET_ARCH"
 echo "  Boot:   $BOOT_MODE"
 echo "  Image:  $IMAGE"
 if [ "$BOOT_MODE" = "direct-kernel" ]; then
@@ -144,8 +166,8 @@ echo "  Vsock:  $VSOCK_MSG"
 echo "  Quit:   Ctrl-A X"
 echo "══════════════════════════════════════════════════════════"
 
-qemu-system-aarch64 \
-  -machine virt,highmem=on \
+$QEMU_SYSTEM \
+  -machine "$QEMU_MACHINE" \
   -accel hvf \
   -cpu host \
   -m 4G \

@@ -51,6 +51,10 @@
         # Default configurations are production-ready (no SSH keys baked in).
         # Dev configurations (*-dev) include profiles/dev.nix which injects
         # the developer's SSH key from ~/.config/stereos/ssh-key.pub.
+        #
+        # These host-native configurations are intended for `nixos-rebuild` use.
+        # For image builds (packages.<system>.<name>), see flake/images.nix
+        # which generates per-system configurations for all target architectures.
         nixosConfigurations = {
           # -- Production configurations --------------------------------------
           base = stereos-lib.mkMixtape {

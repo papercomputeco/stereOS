@@ -28,8 +28,17 @@
 
         echo "stereOS dev shell"
         echo "  Go:   $(go version)"
-        echo "  QEMU: $(qemu-system-aarch64 --version | head -1)"
-        export STEREOS_EFI_CODE="${pkgs.qemu}/share/qemu/edk2-aarch64-code.fd"
+
+        # Set architecture-specific QEMU and EFI firmware
+        if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then
+          echo "  QEMU: $(qemu-system-aarch64 --version | head 1)"
+          export QEMU_SYSTEM="qemu-system-aarch64"
+          export STEREOS_EFI_CODE="${pkgs.qemu}/share/qemu/edk2-aarch64-code.fd"
+        else
+          echo "  QEMU: $(qemu-system-x86_64 --version | head 1)"
+          export QEMU_SYSTEM="qemu-system-x86_64"
+          export STEREOS_EFI_CODE="${pkgs.qemu}/share/qemu/edk2-x86_64-code.fd"
+        fi
       '';
     };
   };
