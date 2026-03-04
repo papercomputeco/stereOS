@@ -22,6 +22,27 @@
   </a>
 </p>
 
+## Supported Architectures
+
+| Architecture | System | Notes |
+|--------------|--------|-------|
+| ARM64 | `aarch64-linux` | Apple Silicon Macs, ARM servers |
+| x86-64 | `x86_64-linux` | Intel/AMD desktops, cloud VMs |
+
+Build images by specifying the target architecture:
+
+```bash
+# Build for ARM64
+ARCH=aarch64-linux make dist
+
+# Build for x86-64
+ARCH=x86_64-linux make dist
+
+# Or directly with nix
+nix build .#packages.x86_64-linux.coder --impure
+nix build .#packages.aarch64-linux.coder --impure
+```
+
 ## Mixtapes
 
 stereOS produces machine images - called **mixtapes** - that bundle a
@@ -49,7 +70,7 @@ handling agent lifecycle and acting as a control plane for agent operators:
 
 | Format | Build attribute | Output | Use case |
 |--------|----------------|--------|----------|
-| Raw EFI | `system.build.raw` | `stereos.img` | Canonical artifact. Apple Virt Framework bootable |
+| Raw EFI | `system.build.raw` | `stereos.img` | Canonical artifact. UEFI bootable (Apple Virt, QEMU) |
 | QCOW2 | `system.build.qcow2` | `stereos.qcow2` | Derived from raw via `qemu-img convert`. QEMU/KVM |
 | Kernel artifacts | `system.build.kernelArtifacts` | `bzImage`, `initrd`, `cmdline`, `init` | Direct-kernel boot (bypasses UEFI/GRUB) |
 
