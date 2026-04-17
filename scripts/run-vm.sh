@@ -23,18 +23,29 @@
 #
 set -euo pipefail
 
-# -- Detect target architecture -----------------------------------------------
-# Auto-detect from environment or use default
-TARGET_ARCH="${STEREOS_TARGET_ARCH:-aarch64}"
+# -- Detect host and target architectures -------------------------------------
+# Normalize `uname -m` to the canonical names we use below.
+case "$(uname -m)" in
+  aarch64|arm64)  HOST_ARCH="aarch64" ;;
+  x86_64|amd64)   HOST_ARCH="x86_64"  ;;
+  *)              HOST_ARCH="unknown" ;;
+esac
+
+# Target arch defaults to the host arch so `./scripts/run-vm.sh` just works
+# on a native image. Override with STEREOS_TARGET_ARCH=<aarch64|x86_64> to
+# cross-emulate (will use tcg, below).
+TARGET_ARCH="${STEREOS_TARGET_ARCH:-$HOST_ARCH}"
 case "$TARGET_ARCH" in
   aarch64|arm64)
+    TARGET_ARCH="aarch64"
     QEMU_SYSTEM="qemu-system-aarch64"
     QEMU_MACHINE="virt,highmem=on"
     ;;
-  x86_64|x64)
+  x86_64|x64|amd64)
     TARGET_ARCH="x86_64"
     QEMU_SYSTEM="qemu-system-x86_64"
-    QEMU_MACHINE="pc,accel=hvf"
+    # q35 is the modern x86 chipset; i440fx ("pc") is legacy.
+    QEMU_MACHINE="q35"
     ;;
   *)
     echo "ERROR: Unknown architecture: $TARGET_ARCH"
@@ -42,6 +53,35 @@ case "$TARGET_ARCH" in
     exit 1
     ;;
 esac
+
+# -- Pick accelerator ---------------------------------------------------------
+# Hardware acceleration requires host ISA == target ISA. When they differ
+# (user asked to cross-emulate), fall back to tcg — slow but correct.
+# hvf on macOS (Hypervisor.framework), kvm on Linux.
+if [ "$HOST_ARCH" != "$TARGET_ARCH" ]; then
+  HOST_ACCEL="tcg"
+else
+  case "$(uname -s)" in
+    Darwin) HOST_ACCEL="hvf" ;;
+    Linux)  HOST_ACCEL="kvm" ;;
+    *)      HOST_ACCEL="tcg" ;;
+  esac
+fi
+
+# -- Pick CPU model -----------------------------------------------------------
+# `-cpu host` only works when QEMU is hardware-accelerated (kvm/hvf). Under
+# tcg cross-architecture emulation the target QEMU rejects it (e.g.
+# qemu-system-aarch64 errors with "kvm required to use host cpu"). Pick a
+# generic, target-appropriate model on the tcg path instead.
+if [ "$HOST_ACCEL" = "tcg" ]; then
+  case "$TARGET_ARCH" in
+    aarch64) CPU_MODEL="cortex-a72" ;;
+    x86_64)  CPU_MODEL="qemu64"     ;;
+    *)       CPU_MODEL="max"        ;;
+  esac
+else
+  CPU_MODEL="host"
+fi
 
 # -- Locate image ------------------------------------------------------------
 # Try raw first (canonical format), fall back to qcow2
@@ -155,6 +195,7 @@ fi
 echo "══════════════════════════════════════════════════════════"
 echo "  stereOS VM starting"
 echo "  Arch:   $TARGET_ARCH"
+echo "  Accel:  $HOST_ACCEL"
 echo "  Boot:   $BOOT_MODE"
 echo "  Image:  $IMAGE"
 if [ "$BOOT_MODE" = "direct-kernel" ]; then
@@ -168,8 +209,8 @@ echo "════════════════════════�
 
 $QEMU_SYSTEM \
   -machine "$QEMU_MACHINE" \
-  -accel hvf \
-  -cpu host \
+  -accel "$HOST_ACCEL" \
+  -cpu "$CPU_MODEL" \
   -m 4G \
   -smp 4 \
   "${BOOT_ARGS[@]}" \
