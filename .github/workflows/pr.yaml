@@ -1,0 +1,65 @@
+name: Check PR
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  DAGGER_VERSION: "0.20.6"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-pr-title:
+    name: Check PR Title
+    runs-on: depot-ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Dagger
+        uses: dagger/dagger-for-github@v8.2.0
+        with:
+          version: ${{ env.DAGGER_VERSION }}
+
+      - name: Check PR title conformance
+        run: |
+          dagger call -m github.com/papercomputeco/daggerverse/ghcontrib \
+              --token=env://GH_TOKEN \
+              --repo="${{ github.repository }}" \
+            check-pull-request \
+              --number "${{ github.event.pull_request.number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
+  check-linear-magic-word:
+    name: Check Linear Magic Word
+    runs-on: depot-ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Dagger
+        uses: dagger/dagger-for-github@v8.2.0
+        with:
+          version: ${{ env.DAGGER_VERSION }}
+
+      - name: Check Linear magic word
+        run: |
+          dagger call -m github.com/papercomputeco/daggerverse/ghcontrib \
+              --token=env://GH_TOKEN \
+              --repo="${{ github.repository }}" \
+            check-pull-request-linear-magic-word \
+              --number "${{ github.event.pull_request.number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
