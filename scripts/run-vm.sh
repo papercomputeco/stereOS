@@ -139,6 +139,20 @@ if [ ! -f "$IMAGE" ]; then
   exit 1
 fi
 
+# -- RPi SD images are for real hardware, not QEMU ---------------------------
+# The sd-image artifact uses U-Boot + extlinux (Pi 4) or the EEPROM-direct
+# kernel_2712.img path (Pi 5); neither boots on qemu-system-aarch64 -M virt.
+# Redirect the user to flashing.
+case "$IMAGE" in
+  *rpi4*.img|*rpi5*.img|*/sd-image/*.img)
+    echo "This looks like a Raspberry Pi SD card image: $IMAGE"
+    echo "It is not bootable under QEMU's 'virt' machine. Flash it to an SD card:"
+    echo "  make flash-rpi4 MIXTAPE=<mixtape>   (for Pi 4)"
+    echo "  make flash-rpi5 MIXTAPE=<mixtape>   (for Pi 5)"
+    exit 1
+    ;;
+esac
+
 # -- Prepare writable working copy ------------------------------------------
 WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT

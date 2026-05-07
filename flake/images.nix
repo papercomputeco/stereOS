@@ -9,9 +9,13 @@
 #   packages.<system>.<mixtape-name>-kernel-artifacts   (direct-kernel boot)
 #   packages.<system>.<mixtape-name>-dist               (all formats + mixtape.toml)
 #
+# RPi mixtapes only emit an SD card image:
+#   packages.aarch64-linux.<mixtape-name>-rpi4-sd       (Pi 4 SD image)
+#
 # Build with:
 #   nix build .#packages.aarch64-linux.coder --impure
 #   nix build .#packages.x86_64-linux.coder --impure
+#   nix build .#packages.aarch64-linux.coder-rpi4-sd --impure
 
 { self, inputs, ... }:
 
@@ -30,6 +34,15 @@ let
     { name = "coder";     features = [ ../mixtapes/coder/package.nix ]; extraModules = []; }
     { name = "base-dev";  features = [ ../mixtapes/base/package.nix ];  extraModules = [ ../profiles/dev.nix ]; }
     { name = "coder-dev"; features = [ ../mixtapes/coder/package.nix ]; extraModules = [ ../profiles/dev.nix ]; }
+  ];
+
+  # RPi 4 mixtape definitions — aarch64-only, SD image output.
+  # stereos.rpi.series defaults to "rpi4" so no inline override is needed.
+  rpi4MixtapeSpecs = [
+    { name = "base-rpi4";      features = [ ../mixtapes/base/package.nix ];  extraModules = [ ../profiles/rpi.nix ]; }
+    { name = "coder-rpi4";     features = [ ../mixtapes/coder/package.nix ]; extraModules = [ ../profiles/rpi.nix ]; }
+    { name = "base-rpi4-dev";  features = [ ../mixtapes/base/package.nix ];  extraModules = [ ../profiles/rpi.nix ../profiles/dev.nix ]; }
+    { name = "coder-rpi4-dev"; features = [ ../mixtapes/coder/package.nix ]; extraModules = [ ../profiles/rpi.nix ../profiles/dev.nix ]; }
   ];
 
   # Helper to build packages for a given system
@@ -88,8 +101,22 @@ let
           };
         }) mixtapeNames
       );
+      # RPi SD images — aarch64-linux only.
+      mkSdImagePkgs = specs:
+        if system == "aarch64-linux" then
+          builtins.listToAttrs (
+            builtins.map (spec: {
+              name = "${spec.name}-sd";
+              value = (stereos-main.mkMixtape {
+                inherit system;
+                inherit (spec) name features extraModules;
+              }).config.system.build.sdImage;
+            }) specs
+          )
+        else {};
+      rpi4Pkgs = mkSdImagePkgs rpi4MixtapeSpecs;
     in
-      rawPkgs // qcow2Named // kernelArtifactsNamed // distPkgs;
+      rawPkgs // qcow2Named // kernelArtifactsNamed // distPkgs // rpi4Pkgs;
 
   # Build packages for all target systems
   allPackages = builtins.listToAttrs (
