@@ -40,7 +40,8 @@ build-kernel: ## Build kernel artifacts for kernel boot
 # -- Raspberry Pi image builds -----------------------------------------------
 #
 # RPi images are aarch64-only and ship as a single SD card image.
-# The attr name adds "-rpi4-sd" to the mixtape (e.g. coder → coder-rpi4-sd).
+# The attr name adds "-rpi4-sd" / "-rpi5-sd" to the mixtape
+# (e.g. coder → coder-rpi4-sd, coder → coder-rpi5-sd).
 
 .PHONY: build-rpi4
 build-rpi4: ## Build an SD card image for Raspberry Pi 4 (MIXTAPE=coder by default)
@@ -49,6 +50,15 @@ build-rpi4: ## Build an SD card image for Raspberry Pi 4 (MIXTAPE=coder by defau
 .PHONY: flash-rpi4
 flash-rpi4: ## Flash RPi4 SD image to an SD card (SSH_KEY=~/.ssh/id_ed25519.pub optional)
 	@./scripts/flash-rpi.sh --board rpi4 \
+		$(if $(SSH_KEY),--ssh-key $(SSH_KEY))
+
+.PHONY: build-rpi5
+build-rpi5: ## Build an SD card image for Raspberry Pi 5 (MIXTAPE=coder by default)
+	nix build .#packages.aarch64-linux.$(MIXTAPE)-rpi5-sd --impure -o result-rpi5
+
+.PHONY: flash-rpi5
+flash-rpi5: ## Flash RPi5 SD image to an SD card (SSH_KEY=~/.ssh/id_ed25519.pub optional)
+	@./scripts/flash-rpi.sh --board rpi5 \
 		$(if $(SSH_KEY),--ssh-key $(SSH_KEY))
 
 # -- VM development operations ------------------------------------------------

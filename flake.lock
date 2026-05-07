@@ -116,6 +116,22 @@
         "type": "github"
       }
     },
+    "nixos-hardware": {
+      "locked": {
+        "lastModified": 1777914779,
+        "narHash": "sha256-otbZpzOc2OplHh09iETXenKoJYp2dhfGFAWoQ2Z+Tcg=",
+        "owner": "NixOS",
+        "repo": "nixos-hardware",
+        "rev": "f1b7ff92cdd107c6c34d3015fbb24bd65161426d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "f1b7ff92cdd1",
+        "repo": "nixos-hardware",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1772047000,
@@ -168,6 +184,7 @@
         "agentd": "agentd",
         "dagger": "dagger",
         "flake-parts": "flake-parts",
+        "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "stereosd": "stereosd"

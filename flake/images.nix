@@ -9,13 +9,15 @@
 #   packages.<system>.<mixtape-name>-kernel-artifacts   (direct-kernel boot)
 #   packages.<system>.<mixtape-name>-dist               (all formats + mixtape.toml)
 #
-# RPi mixtapes only emit an SD card image:
+# RPi mixtapes only emit an SD card image, suffixed by board:
 #   packages.aarch64-linux.<mixtape-name>-rpi4-sd       (Pi 4 SD image)
+#   packages.aarch64-linux.<mixtape-name>-rpi5-sd       (Pi 5 SD image)
 #
 # Build with:
 #   nix build .#packages.aarch64-linux.coder --impure
 #   nix build .#packages.x86_64-linux.coder --impure
 #   nix build .#packages.aarch64-linux.coder-rpi4-sd --impure
+#   nix build .#packages.aarch64-linux.coder-rpi5-sd --impure
 
 { self, inputs, ... }:
 
@@ -44,6 +46,28 @@ let
     { name = "base-rpi4-dev";  features = [ ../mixtapes/base/package.nix ];  extraModules = [ ../profiles/rpi.nix ../profiles/dev.nix ]; }
     { name = "coder-rpi4-dev"; features = [ ../mixtapes/coder/package.nix ]; extraModules = [ ../profiles/rpi.nix ../profiles/dev.nix ]; }
   ];
+
+  # RPi 5 mixtape definitions — aarch64-only, SD image output.
+  # Each spec sets stereos.rpi.series = "rpi5" inline so modules/rpi.nix
+  # writes the Pi 5 firmware partition + [pi5] config.txt block, and pulls
+  # in nixos-hardware.raspberry-pi-5 for the rpi-vendor 6.12.x kernel
+  # (nixpkgs has no Pi 5 kernel package at our pinned rev).
+  rpi5MixtapeSpecs =
+    let
+      rpi5Modules = [
+        ../profiles/rpi.nix
+        { stereos.rpi.series = "rpi5"; }
+        inputs.nixos-hardware.nixosModules.raspberry-pi-5
+        # Skip modules that all-hardware.nix lists but the rpi-vendor
+        # kernel builds as =y. See modules/rpi5-kernel-overlay.nix.
+        ../modules/rpi5-kernel-overlay.nix
+      ];
+    in [
+      { name = "base-rpi5";      features = [ ../mixtapes/base/package.nix ];  extraModules = rpi5Modules; }
+      { name = "coder-rpi5";     features = [ ../mixtapes/coder/package.nix ]; extraModules = rpi5Modules; }
+      { name = "base-rpi5-dev";  features = [ ../mixtapes/base/package.nix ];  extraModules = rpi5Modules ++ [ ../profiles/dev.nix ]; }
+      { name = "coder-rpi5-dev"; features = [ ../mixtapes/coder/package.nix ]; extraModules = rpi5Modules ++ [ ../profiles/dev.nix ]; }
+    ];
 
   # Helper to build packages for a given system
   buildSystemImages = system:
@@ -115,8 +139,9 @@ let
           )
         else {};
       rpi4Pkgs = mkSdImagePkgs rpi4MixtapeSpecs;
+      rpi5Pkgs = mkSdImagePkgs rpi5MixtapeSpecs;
     in
-      rawPkgs // qcow2Named // kernelArtifactsNamed // distPkgs // rpi4Pkgs;
+      rawPkgs // qcow2Named // kernelArtifactsNamed // distPkgs // rpi4Pkgs // rpi5Pkgs;
 
   # Build packages for all target systems
   allPackages = builtins.listToAttrs (
