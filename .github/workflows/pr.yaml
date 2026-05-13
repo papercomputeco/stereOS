@@ -9,7 +9,7 @@ permissions:
   pull-requests: read
 
 env:
-  DAGGER_VERSION: "0.20.6"
+  DAGGER_VERSION: "0.20.8"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
