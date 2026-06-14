@@ -9,6 +9,8 @@
     ./boot.nix
     ./services/stereosd.nix
     ./services/agentd.nix
+    ./rpi-options.nix
+    ./rpi-radios.nix
     ./users/agent.nix
     ./users/admin.nix
   ];

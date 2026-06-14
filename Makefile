@@ -11,6 +11,7 @@
 MIXTAPE  ?= coder
 ARCH     ?=
 SSH_PORT ?= 2222
+SSH_KEY  ?=
 
 define require-arch
 	$(if $(ARCH),,$(error ARCH is required. Use ARCH=aarch64-linux or ARCH=x86_64-linux))
@@ -35,6 +36,30 @@ build-qcow2: ## Build the default mixtape (qcow2 image)
 build-kernel: ## Build kernel artifacts for kernel boot
 	$(call require-arch)
 	nix build .#packages.$(ARCH).$(MIXTAPE)-kernel-artifacts --impure
+
+# -- Raspberry Pi image builds -----------------------------------------------
+#
+# RPi images are aarch64-only and ship as a single SD card image.
+# The attr name adds "-rpi4-sd" / "-rpi5-sd" to the mixtape
+# (e.g. coder → coder-rpi4-sd, coder → coder-rpi5-sd).
+
+.PHONY: build-rpi4
+build-rpi4: ## Build an SD card image for Raspberry Pi 4 (MIXTAPE=coder by default)
+	nix build .#packages.aarch64-linux.$(MIXTAPE)-rpi4-sd --impure -o result-rpi4
+
+.PHONY: flash-rpi4
+flash-rpi4: ## Flash RPi4 SD image to an SD card (SSH_KEY=~/.ssh/id_ed25519.pub optional)
+	@./scripts/flash-rpi.sh --board rpi4 \
+		$(if $(SSH_KEY),--ssh-key $(SSH_KEY))
+
+.PHONY: build-rpi5
+build-rpi5: ## Build an SD card image for Raspberry Pi 5 (MIXTAPE=coder by default)
+	nix build .#packages.aarch64-linux.$(MIXTAPE)-rpi5-sd --impure -o result-rpi5
+
+.PHONY: flash-rpi5
+flash-rpi5: ## Flash RPi5 SD image to an SD card (SSH_KEY=~/.ssh/id_ed25519.pub optional)
+	@./scripts/flash-rpi.sh --board rpi5 \
+		$(if $(SSH_KEY),--ssh-key $(SSH_KEY))
 
 # -- VM development operations ------------------------------------------------
 
@@ -78,6 +103,7 @@ help: ## Show this help message
 	@echo "  MIXTAPE=$(MIXTAPE)"
 	@echo "  ARCH=$(ARCH)"
 	@echo "  SSH_PORT=$(SSH_PORT)"
+	@echo "  SSH_KEY=$(SSH_KEY)"
 
 define print-target
     @printf "Executing target: \033[36m$@\033[0m\n"

@@ -18,13 +18,19 @@
 
 let
   isAarch64 = pkgs.system == "aarch64-linux";
+
+  # VM-target gate. Real hardware images (the RPi4 SD image) enable the
+  # generic extlinux-compatible loader, so we use that as the signal that
+  # this build is NOT a QEMU / Apple-VF guest and should skip the virtio-
+  # only initrd, vsock wiring, and other VM-only optimizations below.
+  isVmTarget = !config.boot.loader.generic-extlinux-compatible.enable;
 in
 {
   # -- Boot ------------------------------------------------------------------
   # efiInstallAsRemovable=true puts GRUB at /EFI/BOOT/BOOTAA64.EFI (aarch64)
   # or /EFI/BOOT/BOOTX64.EFI (x86_64), which is the fallback path
   # QEMU's UEFI firmware searches. The correct filename is determined by grub-install.
-  boot.loader.grub = {
+  boot.loader.grub = lib.mkIf isVmTarget {
     enable = true;
     efiSupport = true;
     efiInstallAsRemovable = true;
@@ -46,13 +52,19 @@ in
   #   tty0     — virtual terminal
   #
   # With this ordering, hvc0/ttyS0 is /dev/console.
+  # quiet + loglevel=0 silence the kernel for fast/clean VM boots — on real
+  # RPi4 hardware we want the messages on HDMI + serial so a hung or failing
+  # boot is diagnosable.
   boot.kernelParams = lib.mkMerge [
-    (lib.mkBefore [ "quiet" "loglevel=0" ])
+    (lib.mkIf isVmTarget (lib.mkBefore [ "quiet" "loglevel=0" ]))
     (if isAarch64
       then [ "console=tty0" "console=ttyAMA0,115200" "console=hvc0" ]
       else [ "console=tty0" "console=ttyS0,115200" ])
   ];
-  boot.growPartition = true;
+  # VM disk images grow on first boot via cloud-utils growpart. The RPi4
+  # sd-image build already handles partition expansion via sdImage.expandOnBoot,
+  # so growpart only runs (and only makes sense) on the VM target.
+  boot.growPartition = lib.mkIf isVmTarget true;
 
   # ============================================================
   # Phase 1: High-Impact, Low-Effort
@@ -65,11 +77,15 @@ in
   boot.initrd.systemd.enable = true;
 
   # Silence kernel output — no printk spam on the serial console during boot.
-  boot.consoleLogLevel = 0;
+  # Real hardware needs the printk stream visible (HDMI + UART) so failures
+  # can be diagnosed.
+  boot.consoleLogLevel = lib.mkIf isVmTarget 0;
 
   # Restrict initrd to only the kernel modules needed for virtio-backed VMs.
   # This keeps the initrd small and avoids probing irrelevant hardware.
-  boot.initrd.availableKernelModules = lib.mkForce [
+  # Real-hardware builds (RPi4) fall through to nixpkgs' all-hardware.nix
+  # defaults (pulled in by sd-image.nix) and must not be narrowed here.
+  boot.initrd.availableKernelModules = lib.mkIf isVmTarget (lib.mkForce [
     "virtio_blk"
     "virtio_pci"
     "virtio_net"
@@ -84,16 +100,16 @@ in
     "ext4"
     "erofs"
     "overlay"
-  ];
+  ]);
   # Nothing force-loaded at initrd time — let systemd-udevd handle it.
-  boot.initrd.kernelModules = lib.mkForce [];
+  boot.initrd.kernelModules = lib.mkIf isVmTarget (lib.mkForce []);
 
   # Force-load vsock transport in the real root so it is available before
   # stereosd starts. udev does not automatically load vsock modules because
   # the virtio-socket device doesn't trigger a modalias match for the
   # transport layer. Without this, stereosd's VsockTransportAvailable()
   # check fails and it falls back to TCP.
-  boot.kernelModules = [ "vmw_vsock_virtio_transport" ];
+  boot.kernelModules = lib.mkIf isVmTarget [ "vmw_vsock_virtio_transport" ];
 
   # Use systemd-networkd for networking instead of scripted ifup.
   # Pairs with disabling the wait-online stall below.
@@ -107,11 +123,26 @@ in
   # QEMU's SLIRP stack provides a DHCP server at 10.0.2.2.
   systemd.network.networks."10-ethernet" = {
     matchConfig.Type = "ether";
+    linkConfig = {
+      # RequiredForOnline=routable means wait-online only succeeds when
+      # the link has a routable DHCP/static address — NOT when IPv4LL
+      # has assigned 169.254.x.x.  On VM targets this is moot (wait-
+      # online is disabled below); on rpi4 it's the difference between
+      # network-online.target firing at the link-local mark (seconds
+      # after boot) vs firing only when a real DHCP lease is in hand
+      # (30-50s later, thanks to BCM54213 PHY negotiation).  Services
+      # that need actual internet — openclaw-bootstrap, for example —
+      # depend on this target being honest.
+      RequiredForOnline = "routable";
+    };
     networkConfig = {
       DHCP = "yes";
-      # Don't wait for DHCP to finish before declaring the link "online".
-      # This avoids boot stalls if the DHCP server is slow or unavailable.
-      LinkLocalAddressing = "ipv4";
+      # VM targets lean on IPv4LL as a "don't block boot if DHCP is
+      # unreachable" fallback.  Real-hardware targets live on a LAN
+      # with a real DHCP server; turning off IPv4LL means the only
+      # address the interface ever gets is the routable one, and the
+      # console banner / `ip addr` never shows a misleading 169.254.
+      LinkLocalAddressing = if isVmTarget then "ipv4" else "no";
     };
     dhcpV4Config = {
       # Accept the default route from QEMU SLIRP (10.0.2.2)
@@ -119,10 +150,12 @@ in
     };
   };
 
-  # Do not stall boot waiting for all interfaces to become online.
-  # The host's SLIRP/vmnet interface comes up asynchronously; we don't need
-  # to block multi-user.target on it.
-  systemd.services.systemd-networkd-wait-online.enable = lib.mkForce false;
+  # VM targets boot on SLIRP/vmnet which comes up asynchronously — we
+  # don't want to block multi-user.target on it.  Real-hardware targets
+  # (rpi4) need the opposite: hold off services like openclaw-bootstrap
+  # until a real DHCP lease is in hand, otherwise npm install will run
+  # against link-local-only connectivity and fail intermittently.
+  systemd.services.systemd-networkd-wait-online.enable = lib.mkForce (!isVmTarget);
 
   # -- Disable unnecessary NixOS defaults ------------------------------------
 
@@ -169,7 +202,11 @@ in
   # Tighten start/stop/device timeouts for the ephemeral sandbox use-case.
   # Default NixOS values are 90 s (start) and 90 s (stop); these are far
   # too long for a VM that should boot and shut down in under 5 s total.
-  systemd.settings.Manager = {
+  # Real hardware (RPi4) needs the defaults back — the SD/MMC controller
+  # typically takes ~3s to enumerate the FIRMWARE partition's by-label
+  # symlink, so DefaultDeviceTimeoutSec=3s races and intermittently loses,
+  # cascading into "Dependency failed for /boot/firmware".
+  systemd.settings.Manager = lib.mkIf isVmTarget {
     DefaultTimeoutStartSec = "10s";
     DefaultTimeoutStopSec = "3s";
     DefaultDeviceTimeoutSec = "3s";
@@ -183,10 +220,12 @@ in
 
   # stereOS is headless; there is no interactive login via a TTY or serial
   # console.  Disabling getty removes several units from the boot graph.
-  services.getty.autologinUser = lib.mkForce null;
-  systemd.services."getty@".enable = lib.mkForce false;
-  systemd.services."serial-getty@".enable = lib.mkForce false;
-  systemd.services."autovt@".enable = lib.mkForce false;
+  # On real hardware (RPi4) we keep getty so the user can log in via HDMI +
+  # keyboard or via UART.
+  services.getty.autologinUser = lib.mkIf isVmTarget (lib.mkForce null);
+  systemd.services."getty@".enable = lib.mkIf isVmTarget (lib.mkForce false);
+  systemd.services."serial-getty@".enable = lib.mkIf isVmTarget (lib.mkForce false);
+  systemd.services."autovt@".enable = lib.mkIf isVmTarget (lib.mkForce false);
 
   # Use a volatile (in-memory) journal.  An ephemeral sandbox VM has no need
   # for persistent logs across reboots, and avoiding disk writes reduces I/O

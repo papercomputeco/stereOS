@@ -5,6 +5,19 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
+
+    # Raspberry Pi 4 / 5 configuration. The Pi 5 module sets
+    # boot.kernelPackages to the rpi-vendor 6.12.x kernel (built with
+    # bcm2712_defconfig and the RP1-southbridge initrd modules); without
+    # this input there is no Pi 5 kernel in nixpkgs at our pinned rev.
+    #
+    # Pinned to f1b7ff92cdd1 — the last commit before nixos-hardware#1841
+    # replaced the kernel's postConfigure sed with `LOCALVERSION = freeform ""`,
+    # which expands through nixpkgs' kernel-config emitter as the literal
+    # two characters `""`, breaking modDirVersion at build time. Tracked
+    # in nixos-hardware#1859; fix in #1860 is open but unmerged. Revisit
+    # the pin once #1860 (or any later fix) lands on master.
+    nixos-hardware.url = "github:NixOS/nixos-hardware/f1b7ff92cdd1";
     dagger.url = "github:dagger/nix";
     dagger.inputs.nixpkgs.follows = "nixpkgs";
 
