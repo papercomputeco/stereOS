@@ -1,0 +1,29 @@
+# Standalone workspace: this crate lives in the stereOS repo and is built on its
+# own by Nix (buildRustPackage), not as a member of any enclosing workspace.
+[workspace]
+
+[package]
+name = "lambda-microvm-lifecycle"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+description = "AWS Lambda MicroVM lifecycle hook server for stereOS source bundles"
+
+[[bin]]
+name = "lambda-microvm-lifecycle"
+path = "src/main.rs"
+
+[dependencies]
+tiny_http = "0.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+snafu = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt"] }
+wait-timeout = "0.2"
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "z"

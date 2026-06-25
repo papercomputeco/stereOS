@@ -36,6 +36,11 @@ build-kernel: ## Build kernel artifacts for kernel boot
 	$(call require-arch)
 	nix build .#packages.$(ARCH).$(MIXTAPE)-kernel-artifacts --impure
 
+.PHONY: build-lambda-microvm-source
+build-lambda-microvm-source: ## Build Dockerfile source zip for AWS Lambda MicroVM image creation
+	$(call require-arch)
+	nix build .#packages.$(ARCH).$(MIXTAPE)-lambda-microvm-source --impure
+
 # -- VM development operations ------------------------------------------------
 
 .PHONY: run
