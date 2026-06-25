@@ -24,6 +24,14 @@ pkgs.stdenvNoCC.mkDerivation {
     hash = hashes.${platform};
   };
 
+  # The release binary is a glibc-dynamic ELF whose interpreter is the FHS
+  # /lib/ld-linux-*.so path. That path does not exist in the Lambda MicroVM
+  # scratch rootfs (only the Nix store glibc does), so without patching the
+  # binary cannot execute there. autoPatchelfHook rewrites the interpreter and
+  # RPATH to the Nix glibc (the same loader the lifecycle binary uses).
+  nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+  buildInputs = [ pkgs.stdenv.cc.cc.lib pkgs.glibc ];
+
   dontUnpack = true;
 
   installPhase = ''
