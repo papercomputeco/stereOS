@@ -104,6 +104,9 @@ let
               ++ configs.${name}.config.stereos.agent.extraPackages
               ++ [ paper-bin ];
             startPaperd = true;
+            # Warm Claude Code's native build into the snapshot during image
+            # creation. A no-op for mixtapes without `claude` on PATH.
+            warmAgent = true;
           };
         }) mixtapeNames
       );

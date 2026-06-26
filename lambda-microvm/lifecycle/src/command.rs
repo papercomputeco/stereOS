@@ -1,7 +1,8 @@
 //! Execution of `STEREOS_RUN_COMMAND`.
 
 use std::io::Read;
-use std::process::{Command, Stdio};
+use std::os::unix::process::CommandExt;
+use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 
 use serde_json::{Value, json};
@@ -38,7 +39,7 @@ pub fn run_command(
         return Ok(json!({ "configured": false }));
     };
 
-    let mut child = Command::new("/bin/bash")
+    let child = Command::new("/bin/bash")
         .arg("-lc")
         .arg(command)
         .current_dir(workdir)
@@ -49,8 +50,72 @@ pub fn run_command(
         .spawn()
         .context(SpawnSnafu)?;
 
-    // Drain stdout/stderr on threads so a chatty command cannot deadlock by
-    // filling a pipe buffer while we are blocked in wait_timeout.
+    let (code, stdout, stderr) = collect(child, timeout)?;
+    Ok(json!({
+        "configured": true,
+        "exit_code": code,
+        "stdout": tail_chars(&String::from_utf8_lossy(&stdout), 4096),
+        "stderr": tail_chars(&String::from_utf8_lossy(&stderr), 4096),
+    }))
+}
+
+/// Run a build-time setup command (`STEREOS_READY_COMMAND`) as the agent user.
+///
+/// Unlike [`run_command`] this drops to `uid`/`gid` and runs with a clean,
+/// agent-rooted login environment (HOME/XDG under `home`), so build-time work
+/// like `claude install` populates the agent's caches rather than root's. The
+/// ambient process env is inherited so TLS cert vars (set in the image
+/// Dockerfile) remain available for downloads. `command == None` is a no-op.
+pub fn run_setup_command(
+    command: Option<&str>,
+    home: &str,
+    uid: u32,
+    gid: u32,
+    timeout: Duration,
+) -> Result<Value, RunCommandError> {
+    use run_command_error::*;
+
+    let Some(command) = command else {
+        return Ok(json!({ "configured": false }));
+    };
+
+    let child = Command::new("/bin/bash")
+        .arg("-lc")
+        .arg(command)
+        .current_dir(home)
+        .uid(uid)
+        .gid(gid)
+        .env("HOME", home)
+        .env("USER", "agent")
+        .env("LOGNAME", "agent")
+        .env("XDG_CONFIG_HOME", format!("{home}/.config"))
+        .env("XDG_STATE_HOME", format!("{home}/.local/state"))
+        .env("XDG_CACHE_HOME", format!("{home}/.cache"))
+        .env("XDG_DATA_HOME", format!("{home}/.local/share"))
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .context(SpawnSnafu)?;
+
+    let (code, stdout, stderr) = collect(child, timeout)?;
+    Ok(json!({
+        "configured": true,
+        "exit_code": code,
+        "stdout": tail_chars(&String::from_utf8_lossy(&stdout), 4096),
+        "stderr": tail_chars(&String::from_utf8_lossy(&stderr), 4096),
+    }))
+}
+
+/// Exit code (if any) plus the captured stdout and stderr of a finished command.
+type CommandOutput = (Option<i32>, Vec<u8>, Vec<u8>);
+
+/// Wait for `child` with a timeout, draining stdout/stderr on threads so a
+/// chatty command cannot deadlock by filling a pipe buffer. Returns the exit
+/// code (if any) and the captured streams.
+fn collect(mut child: Child, timeout: Duration) -> Result<CommandOutput, RunCommandError> {
+    use run_command_error::*;
+
     let mut out = child.stdout.take().expect("piped stdout");
     let mut err = child.stderr.take().expect("piped stderr");
     let out_h = std::thread::spawn(move || {
@@ -73,15 +138,11 @@ pub fn run_command(
         }
     };
 
-    let stdout = out_h.join().unwrap_or_default();
-    let stderr = err_h.join().unwrap_or_default();
-
-    Ok(json!({
-        "configured": true,
-        "exit_code": status.code(),
-        "stdout": tail_chars(&String::from_utf8_lossy(&stdout), 4096),
-        "stderr": tail_chars(&String::from_utf8_lossy(&stderr), 4096),
-    }))
+    Ok((
+        status.code(),
+        out_h.join().unwrap_or_default(),
+        err_h.join().unwrap_or_default(),
+    ))
 }
 
 /// Last `n` characters of `s`, matching the Python `s[-n:]` slicing.

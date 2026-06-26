@@ -7,9 +7,36 @@
     , version ? "0.0.0-dev"
     , agentPackages ? []
     , startPaperd ? false
+    , warmAgent ? false
     }:
     let
       paperdEnv = if startPaperd then "ENV STEREOS_START_PAPERD=1\n" else "";
+
+      # When enabled, the lifecycle runs this during the AWS `ready` build hook
+      # (as the agent user), so its disk writes land in the image snapshot and
+      # every launched MicroVM starts warm. It must not create per-VM-unique or
+      # secret state, since the snapshot is shared across all MicroVMs.
+      readyCommandEnv =
+        if warmAgent then "ENV STEREOS_READY_COMMAND=/usr/local/bin/stereos-warm-agent\n" else "";
+
+      # Pre-populates Claude Code's ~200MB native build (no auth, no `paper`),
+      # then pre-seeds onboarding so the first interactive run skips the theme
+      # prompt and strips the per-machine ids `claude install` writes so they
+      # regenerate per-VM. Failures are non-fatal: a build without network just
+      # ships unwarmed rather than failing image creation.
+      warmAgentScript = pkgs.writeText "stereos-warm-agent" ''
+        #!/bin/sh
+        set -u
+        command -v claude >/dev/null 2>&1 || { echo "claude not present; skipping warm-up"; exit 0; }
+        claude install || echo "claude install failed (no build-time network?); continuing"
+        cfg="$HOME/.claude.json"
+        if [ -f "$cfg" ] && command -v jq >/dev/null 2>&1; then
+          tmp="$(mktemp)"
+          jq 'del(.machineID, .userID, .firstStartTime) + {theme: "dark", hasCompletedOnboarding: true}' "$cfg" > "$tmp" \
+            && mv "$tmp" "$cfg" || rm -f "$tmp"
+        fi
+        exit 0
+      '';
 
       # Built from source by Nix using the pinned nixpkgs Rust toolchain (same
       # model as buildGoModule for agentd/stereosd). images.nix builds this
@@ -115,6 +142,11 @@
         ln -s /bin/echo "$root/usr/bin/echo"
         ln -s /bin/stty "$root/usr/bin/stty"
 
+        ${pkgs.lib.optionalString warmAgent ''
+          cp ${warmAgentScript} "$root/usr/local/bin/stereos-warm-agent"
+          chmod 0755 "$root/usr/local/bin/stereos-warm-agent"
+        ''}
+
         # Build the tar in two passes so the agent home subtree ships owned by
         # uid/gid 1000 while everything else stays root-owned. tar applies the
         # --owner/--group overrides regardless of the build user, so no
@@ -147,7 +179,7 @@
             NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt \\
             STEREOS_MIXTAPE=${name} \\
             STEREOS_VERSION=${version}
-        ${paperdEnv}
+        ${paperdEnv}${readyCommandEnv}
         WORKDIR /home/agent/workspace
         EXPOSE 9000
         ENTRYPOINT ["/bin/lambda-microvm-lifecycle"]

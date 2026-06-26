@@ -20,6 +20,9 @@ pub trait Effects: Send + Sync {
     fn spawn_dispatch(&self, dispatch: Value);
     /// Schedule process shutdown shortly after responding (terminate hooks).
     fn schedule_shutdown(&self);
+    /// Run the build-time `STEREOS_READY_COMMAND` synchronously. Called once,
+    /// during the AWS `ready` hook, before the image snapshot is taken.
+    fn warm_ready(&self);
     /// Current unix time in seconds (injectable for deterministic tests).
     fn now(&self) -> f64;
 }
@@ -107,9 +110,27 @@ impl Router<'_> {
         }
     }
 
+    /// Run the build-time warm-up exactly once, on the first AWS `ready` hook,
+    /// before responding 200 so the result is captured in the image snapshot.
+    /// The state lock is released before the (slow) command runs.
+    fn maybe_warm_ready(&self, hook: &str) {
+        if hook != "ready" {
+            return;
+        }
+        {
+            let mut s = self.state.lock().unwrap();
+            if s.ready_warmed {
+                return;
+            }
+            s.ready_warmed = true;
+        }
+        self.effects.warm_ready();
+    }
+
     fn get(&self, path: &str) -> Reply {
         if let Some(hook @ ("ready" | "validate")) = hook_for(path) {
             self.state.lock().unwrap().record_hook(hook, "", self.now);
+            self.maybe_warm_ready(hook);
             return self.ok();
         }
         match path {
@@ -121,6 +142,7 @@ impl Router<'_> {
     fn post(&self, path: &str, body: &str) -> Reply {
         if let Some(hook) = hook_for(path) {
             self.state.lock().unwrap().record_hook(hook, body, self.now);
+            self.maybe_warm_ready(hook);
             return Reply {
                 status: 200,
                 body: self.apply_hook(hook, body),
@@ -228,6 +250,7 @@ mod tests {
         run_mode: RunMode,
         dispatched: Mutex<Vec<Value>>,
         shutdowns: AtomicUsize,
+        warms: AtomicUsize,
     }
 
     impl Mock {
@@ -236,6 +259,7 @@ mod tests {
                 run_mode,
                 dispatched: Mutex::new(Vec::new()),
                 shutdowns: AtomicUsize::new(0),
+                warms: AtomicUsize::new(0),
             }
         }
     }
@@ -255,6 +279,9 @@ mod tests {
         }
         fn schedule_shutdown(&self) {
             self.shutdowns.fetch_add(1, Ordering::SeqCst);
+        }
+        fn warm_ready(&self) {
+            self.warms.fetch_add(1, Ordering::SeqCst);
         }
         fn now(&self) -> f64 {
             1.0
@@ -294,6 +321,40 @@ mod tests {
         );
         assert_eq!(r.status, 200);
         assert_eq!(st.lock().unwrap().hooks.len(), 1);
+    }
+
+    #[test]
+    fn ready_hook_warms_once_validate_does_not() {
+        let (st, cfg) = ctx();
+        let m = Mock::new(RunMode::Ok);
+        // First ready (GET) warms; second ready (POST) is a no-op.
+        handle(
+            "GET",
+            "/aws/lambda-microvms/runtime/v1/ready",
+            "",
+            &st,
+            &cfg,
+            &m,
+        );
+        handle(
+            "POST",
+            "/aws/lambda-microvms/runtime/v1/ready",
+            "",
+            &st,
+            &cfg,
+            &m,
+        );
+        // validate never warms.
+        handle(
+            "GET",
+            "/aws/lambda-microvms/runtime/v1/validate",
+            "",
+            &st,
+            &cfg,
+            &m,
+        );
+        assert_eq!(m.warms.load(Ordering::SeqCst), 1);
+        assert!(st.lock().unwrap().ready_warmed);
     }
 
     #[test]

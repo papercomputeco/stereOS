@@ -37,6 +37,9 @@ struct RealEffects {
     run_command: Option<String>,
     workdir: String,
     timeout: Duration,
+    ready_command: Option<String>,
+    ready_timeout: Duration,
+    agent_home: String,
 }
 
 impl Effects for RealEffects {
@@ -77,6 +80,26 @@ impl Effects for RealEffects {
             std::thread::sleep(Duration::from_millis(250));
             std::process::exit(0);
         });
+    }
+
+    fn warm_ready(&self) {
+        if self.ready_command.is_none() {
+            return;
+        }
+        tracing::info!("running ready warm-up command");
+        match command::run_setup_command(
+            self.ready_command.as_deref(),
+            &self.agent_home,
+            paperd::AGENT_UID,
+            paperd::AGENT_GID,
+            self.ready_timeout,
+        ) {
+            // Logged, not stored in the snapshot: `last_run_command` is reserved
+            // for actual /run calls, and the warm output would otherwise ship in
+            // every MicroVM's initial state.
+            Ok(result) => tracing::info!(result = %result, "ready warm-up finished"),
+            Err(e) => tracing::warn!(error = %e, "ready warm-up failed"),
+        }
     }
 
     fn now(&self) -> f64 {
@@ -137,6 +160,11 @@ fn main() {
     let timeout_secs: u64 = env_or("STEREOS_RUN_TIMEOUT_SECONDS", "300")
         .parse()
         .unwrap_or(300);
+    // Default under the AWS `readyTimeoutInSeconds` (300) so the warm-up cannot
+    // overrun the build's ready window and abort image creation.
+    let ready_timeout_secs: u64 = env_or("STEREOS_READY_TIMEOUT_SECONDS", "240")
+        .parse()
+        .unwrap_or(240);
     let effects = Arc::new(RealEffects {
         state: state.clone(),
         run_command: std::env::var("STEREOS_RUN_COMMAND")
@@ -144,6 +172,11 @@ fn main() {
             .filter(|s| !s.is_empty()),
         workdir: env_or("STEREOS_WORKDIR", "/home/agent/workspace"),
         timeout: Duration::from_secs(timeout_secs),
+        ready_command: std::env::var("STEREOS_READY_COMMAND")
+            .ok()
+            .filter(|s| !s.is_empty()),
+        ready_timeout: Duration::from_secs(ready_timeout_secs),
+        agent_home: env_or("STEREOS_AGENT_HOME", paperd::AGENT_HOME),
     });
 
     let host = env_or("HOST", "0.0.0.0");

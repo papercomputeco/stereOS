@@ -29,6 +29,10 @@ pub struct State {
     pub suspended: bool,
     pub paperd: String,
     pub hooks: Vec<Hook>,
+    /// Whether the build-time ready warm-up has already run. Not serialized:
+    /// it guards a one-shot side effect and is not part of the AWS snapshot
+    /// contract.
+    pub ready_warmed: bool,
 }
 
 impl State {
@@ -42,6 +46,7 @@ impl State {
             suspended: false,
             paperd: "not-started".to_string(),
             hooks: Vec::new(),
+            ready_warmed: false,
         }
     }
 

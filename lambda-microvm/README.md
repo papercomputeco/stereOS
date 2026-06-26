@@ -80,6 +80,29 @@ so the lifecycle process starts `paperd` when it finds the binary at
 `/usr/local/bin/paperd`, `/bin/paperd`, or `/bin/paper`. Set
 `STEREOS_START_PAPERD=0` in a derived image to opt out.
 
+## Build-time Warm-up (`STEREOS_READY_COMMAND`)
+
+When `STEREOS_READY_COMMAND` is set, the lifecycle process runs it **once**, on
+the first AWS `ready` build hook, **before** responding 200 — so its disk writes
+are captured in the image snapshot and every launched MicroVM starts warm. It
+runs as the agent user (uid/gid `1000`) with an agent-rooted login environment
+(`HOME`/XDG under `/home/agent`), via `/bin/bash -lc`, bounded by
+`STEREOS_READY_TIMEOUT_SECONDS` (default `240`, kept under the AWS
+`readyTimeoutInSeconds`). The result is logged to CloudWatch, not stored in the
+snapshot's `last_run_command`.
+
+Mixtapes built with `warmAgent = true` ship `/usr/local/bin/stereos-warm-agent`
+and point `STEREOS_READY_COMMAND` at it. That script runs `claude install` to
+pre-cache Claude Code's native build (no auth, no `paper`), then pre-seeds
+onboarding so the first interactive run skips the theme prompt.
+
+Warm-up must produce only **shareable** state. The Firecracker snapshot is shared
+by every MicroVM created from the image, so the script strips the per-machine
+identifiers `claude install` writes (`machineID`, `userID`) so they regenerate
+per-VM. Never `paper login` or otherwise bake secrets/unique state during the
+build. Warm-up failures (e.g. no network during build) are non-fatal: the image
+just ships unwarmed.
+
 ## Native Shell / SSH Access
 
 The Lambda MicroVM source bundle includes OpenSSH server binaries and host keys
