@@ -17,6 +17,7 @@
 
 let
   stereos-lib = import ../lib/dist.nix { inherit inputs; };
+  stereos-lambda = import ../lib/lambda-microvm.nix { inherit inputs; };
   stereos-main = import ../lib { inherit inputs self; };
 
   # Target architectures to build images for
@@ -36,6 +37,7 @@ let
   buildSystemImages = system:
     let
       pkgs = inputs.nixpkgs.legacyPackages.${system};
+      paper-bin = import ../lib/paper-bin.nix { inherit pkgs; };
 
       # Build a nixosConfiguration for each mixtape spec, targeting this system.
       configs = builtins.listToAttrs (
@@ -88,8 +90,28 @@ let
           };
         }) mixtapeNames
       );
+      # Lambda MicroVM source bundles — Dockerfile + Nix-built rootfs tar,
+      # deliberately separate from VM mixtape artifacts.
+      lambdaMicrovmPkgs = builtins.listToAttrs (
+        builtins.map (name: {
+          name = "${name}-lambda-microvm-source";
+          value = stereos-lambda.mkLambdaMicrovmSource {
+            inherit pkgs;
+            name = name;
+            version = stereos-main.stereosVersion;
+            agentPackages =
+              configs.${name}.config.stereos.agent.basePackages
+              ++ configs.${name}.config.stereos.agent.extraPackages
+              ++ [ paper-bin ];
+            startPaperd = true;
+            # Warm Claude Code's native build into the snapshot during image
+            # creation. A no-op for mixtapes without `claude` on PATH.
+            warmAgent = true;
+          };
+        }) mixtapeNames
+      );
     in
-      rawPkgs // qcow2Named // kernelArtifactsNamed // distPkgs;
+      rawPkgs // qcow2Named // kernelArtifactsNamed // distPkgs // lambdaMicrovmPkgs;
 
   # Build packages for all target systems
   allPackages = builtins.listToAttrs (

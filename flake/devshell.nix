@@ -14,6 +14,14 @@
         pkgs.go_1_25
         pkgs.gopls
         pkgs.gotools
+        # Rust toolchain for the Lambda MicroVM lifecycle crate
+        # (lambda-microvm/lifecycle). Uses the pinned nixpkgs toolchain, the
+        # same model as go_1_25 above and buildRustPackage in the image build.
+        pkgs.cargo
+        pkgs.rustc
+        pkgs.clippy
+        pkgs.rustfmt
+        pkgs.rust-analyzer
         pkgs.hurl
         pkgs.zstd
         inputs.dagger.packages.${system}.dagger

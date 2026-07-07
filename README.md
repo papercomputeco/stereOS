@@ -52,6 +52,12 @@ handling agent lifecycle and acting as a control plane for agent operators:
 | Raw EFI | `system.build.raw` | `stereos.img` | Canonical artifact. Apple Virt Framework bootable |
 | QCOW2 | `system.build.qcow2` | `stereos.qcow2` | Derived from raw via `qemu-img convert`. QEMU/KVM |
 | Kernel artifacts | `system.build.kernelArtifacts` | `bzImage`, `initrd`, `cmdline`, `init` | Direct-kernel boot (bypasses UEFI/GRUB) |
+| Lambda MicroVM source | `packages.<system>.<mixtape>-lambda-microvm-source` | Dockerfile source zip | AWS Lambda MicroVM image creation |
+
+The Lambda MicroVM source bundle is not a full stereOS VM image. It packages
+stereOS userspace into a Dockerfile-based rootfs bundle because AWS Lambda
+MicroVM images are created from Dockerfile application sources, not custom
+kernel or disk artifacts.
 
 ### Distribution (mkDist)
 
