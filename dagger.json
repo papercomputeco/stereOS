@@ -1,6 +1,6 @@
 {
   "name": "stereOS",
-  "engineVersion": "v0.19.11",
+  "engineVersion": "v0.21.8",
   "sdk": {
     "source": "go"
   },
