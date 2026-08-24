@@ -8,9 +8,6 @@ permissions:
   contents: read
   pull-requests: read
 
-env:
-  DAGGER_VERSION: "0.20.8"
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -24,14 +21,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Dagger
-        uses: dagger/dagger-for-github@v8.2.0
-        with:
-          version: ${{ env.DAGGER_VERSION }}
+      - name: Install Nix
+        uses: DeterminateSystems/determinate-nix-action@d96678350ffd6a456235832eb11e1c491589b7bb # v3.21.8
+
+      - name: Cache Nix store
+        uses: DeterminateSystems/magic-nix-cache-action@908b263ff629f4cc17666315b7fd3ec127c6244d # v14
 
       - name: Check PR title conformance
         run: |
-          dagger call -m github.com/papercomputeco/daggerverse/ghcontrib \
+          nix develop --command dagger call -m github.com/papercomputeco/daggerverse/ghcontrib@45e997aec734ec4875ff57bebed2317e1bd49185 \
               --token=env://GH_TOKEN \
               --repo="${{ github.repository }}" \
             check-pull-request \
@@ -48,14 +46,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Dagger
-        uses: dagger/dagger-for-github@v8.2.0
-        with:
-          version: ${{ env.DAGGER_VERSION }}
+      - name: Install Nix
+        uses: DeterminateSystems/determinate-nix-action@d96678350ffd6a456235832eb11e1c491589b7bb # v3.21.8
+
+      - name: Cache Nix store
+        uses: DeterminateSystems/magic-nix-cache-action@908b263ff629f4cc17666315b7fd3ec127c6244d # v14
 
       - name: Check Linear magic word
         run: |
-          dagger call -m github.com/papercomputeco/daggerverse/ghcontrib \
+          nix develop --command dagger call -m github.com/papercomputeco/daggerverse/ghcontrib@45e997aec734ec4875ff57bebed2317e1bd49185 \
               --token=env://GH_TOKEN \
               --repo="${{ github.repository }}" \
             check-pull-request-linear-magic-word \
