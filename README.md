@@ -27,13 +27,33 @@
 stereOS produces machine images - called **mixtapes** - that bundle a
 hardened, minimal Linux system with specific AI agent harnesses.
 
-| Mixtape | Agent binary | API key |
-|---------|-------------|---------|
-| `opencode-mixtape` | `opencode` | `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` |
+| Mixtape | Agent binaries | API key |
+|---------|----------------|---------|
+| `base` | none | — |
+| `coder` | `claude`, `codex`, `gemini`, `opencode`, `pi` | see below |
 
-Each mixtape appends its agent package to `stereos.agent.extraPackages`, which
-adds the binary to the agent user's restricted PATH. The `-dev` variant of
-each mixtape includes `profiles/dev.nix` for local SSH key injection.
+`base` is the bare hardened system that everything else extends. `coder` adds
+the coding agents:
+
+| Binary | Package | API key |
+|--------|---------|---------|
+| `claude` | `pkgs-unstable.claude-code` | `ANTHROPIC_API_KEY` |
+| `codex` | `pkgs-unstable.codex` | `OPENAI_API_KEY` |
+| `gemini` | `pkgs-unstable.gemini-cli` | `GEMINI_API_KEY` or `GOOGLE_API_KEY` |
+| `opencode` | `pkgs-unstable.opencode` | `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` |
+| `pi` | [`lib/pi-bin.nix`](lib/pi-bin.nix) | resolved per model by pi's own registry |
+
+Each mixtape appends its agent packages to `stereos.agent.extraPackages`, which
+adds the binaries to the agent user's restricted PATH. That option also feeds
+the gVisor sandbox closure manifest (`lib/default.nix:mkSandboxManifest`) and
+the Lambda MicroVM bundle's `agentPackages` (`flake/images.nix`), so a package
+added there reaches every artifact. The `-dev` variant of each mixtape includes
+`profiles/dev.nix` for local SSH key injection.
+
+`pi` is not in nixpkgs; `lib/pi-bin.nix` builds it from the published npm
+tarball, the same local-derivation pattern `lib/paper-bin.nix` uses for the
+Paper CLI. Bumping its version requires refreshing the tarball hash, the
+`npmDepsHash`, and the six pi-mono sibling integrity hashes together.
 
 ## System
 
