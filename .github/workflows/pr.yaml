@@ -33,7 +33,7 @@ jobs:
               --token=env://GH_TOKEN \
               --repo="${{ github.repository }}" \
             check-pull-request \
-              --number "${{ github.event.pull_request.number }}"
+              --number "${{ github.event.pull_request.number }}" --cloud
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -58,7 +58,7 @@ jobs:
               --token=env://GH_TOKEN \
               --repo="${{ github.repository }}" \
             check-pull-request-linear-magic-word \
-              --number "${{ github.event.pull_request.number }}"
+              --number "${{ github.event.pull_request.number }}" --cloud
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
